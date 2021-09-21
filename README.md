@@ -7,3 +7,4 @@ Technologies used
  - Python 3
  - YoloV4 weights and configs
  - CUDA for NVIDIA gpus
+ - Use docker for ease of deployment
