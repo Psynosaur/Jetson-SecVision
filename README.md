@@ -13,5 +13,7 @@ Technologies used
 
  - Detect persons other than family members
  - Notify if persons detected
- - Use a react native app to monitor notifications
+ - Monitor notifications
+   - Web UI
+   - React Native app for push notifications
  - Still pictures will be taken only initially
