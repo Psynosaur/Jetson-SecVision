@@ -3,17 +3,12 @@
 This will be a computer vision project to classify persons with RTSP video feeds common to many security systems
 
 Technologies used
- - OpenCV
- - Python 3
- - YoloV4 weights and configs
+ - Tensorflow.net with GPU
  - CUDA for NVIDIA gpus
- - Use docker for ease of deployment
+ - Use docker for ease of deployment(optional)
 
 ### Goals
 
- - Detect persons other than family members
- - Notify if persons detected
- - Monitor notifications
-   - Web UI
-   - React Native app for push notifications
- - Still pictures will be taken only initially
+ - Detect persons
+   - HTTP PUT to HikVision DVR when detected
+ - Use still frames from HTTP GET from DVR to analyze zones(cameras)
