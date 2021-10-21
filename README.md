@@ -59,7 +59,7 @@ Technologies used
       Oct 21 21:16:52 jetson secvision[11801]: [TRT]    Using cuDNN as a tactic source
       Oct 21 21:16:52 jetson secvision[11801]: [TRT]    [MemUsageChange] Init cuDNN: CPU +0, GPU +0, now: CPU 684, GPU 3042 (MiB)
 
-   The log output can be viewed by running:
+   The log output can be viewed by running, this will be further implemented at a later stage...
 
       $ sudo journalctl -u detect.service -f -n
    
