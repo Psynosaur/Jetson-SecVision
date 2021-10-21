@@ -25,6 +25,8 @@ Technologies used
 
       python3 detect.py
 
+   Takes approximately 2 seconds to do its thing for 8x2MP images, sometimes a little longer at 2.8s when writing files
+
    ### Automatic / Continuous Operation
    
       $ sudo cp detect.service /etc/systemd/system/
