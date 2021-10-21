@@ -81,13 +81,13 @@ async def main():
                     print(f">>>>{channel} - {now.strftime('%H:%M:%S.%f')}_person found - {detection.Confidence}")
                     imgdir = "frames/" + now.strftime('%Y-%m-%d') + "/" + f"{channel}" + "/"
                     wd = os.path.join(cwdpath, imgdir)
-                    print(cwd)
+                    print(wd)
                     try:
                         os.makedirs(wd)
                     except FileExistsError:
                         # directory already exists
                         pass
-                    jetson.utils.saveImageRGBA(cwd + f"{now.strftime('%H_%M_%S.%f')}_person_frame_{detection.Confidence}.jpg", frame, 1920, 1080)
+                    jetson.utils.saveImageRGBA(wd + f"{now.strftime('%H_%M_%S.%f')}_person_frame_{detection.Confidence}.jpg", frame, 1920, 1080)
         # end = time.time()
         # print(f"SCAN DATA - {end - start}")
 
