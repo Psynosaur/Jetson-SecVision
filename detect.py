@@ -72,20 +72,18 @@ async def main():
         # start = time.time()
         channel_frames = await af.main(auth, config.get('DVR', 'channels' ))
         for channel, frame in channel_frames:
-            # detect objects in the image (with overlay)
+            # detect objects in the image (without overlay)
             detections = net.Detect(frame, overlay=opt.overlay)
-            # print the detections
-            # print("detected {:d} objects in image".format(len(detections)))
             now = datetime.datetime.now()
-
             for detection in detections:
+                # person classID in COCO is 1
                 if detection.ClassID == 1 and detection.Confidence >= 0.80:
                     print(f">>>>{channel} - {now.strftime('%H:%M:%S.%f')}_person found - {detection.Confidence}")
                     imgdir = "frames/" + now.strftime('%Y-%m-%d') + "/" + f"{channel}" + "/"
-                    cwd = os.path.join(cwdpath, imgdir)
+                    wd = os.path.join(cwdpath, imgdir)
                     print(cwd)
                     try:
-                        os.makedirs(cwd)
+                        os.makedirs(wd)
                     except FileExistsError:
                         # directory already exists
                         pass
