@@ -1,10 +1,11 @@
 #### SecVision
 
-This will be a computer vision project to classify persons with RTSP video feeds common to many security systems
+This will be a computer vision project to classify persons with RTSP video/HTTP Image feeds common to many security systems
 
 Technologies used
- - Tensorflow.net with GPU
- - Use docker for ease of deployment(optional)
+ 
+ - Jetson Nano 
+ - Jetson Inference - Detectnet
 
 ### Goals
 

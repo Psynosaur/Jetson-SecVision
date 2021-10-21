@@ -1,0 +1,14 @@
+[Unit]
+Description=secvision
+After=syslog.target
+
+[Service]
+ExecStart=/usr/bin/python3 /home/jetsonman/SecVisionJetson/detect.py --threshold 0.7
+Restart=always
+RestartSec=120
+WorkingDirectory=/home/jetsonman/SecVisionJetson
+User=jetsonman
+SyslogIdentifier=secvision
+
+[Install]
+WantedBy=multi-user.target
