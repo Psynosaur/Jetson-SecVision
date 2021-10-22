@@ -35,11 +35,11 @@ Technologies used
    Change usr and paths in detect.service file to suite you environment then 
 
       $ sudo systemctl enable detect.service
-      $ sudo systemctl start detect.service
+      $ sudo service detect start
 
    Check status of service 
 
-      $ sudo systemctl status detect.service
+      $ sudo service detect status
       ● detect.service - secvision
          Loaded: loaded (/etc/systemd/system/detect.service; enabled; vendor preset: enabled)
          Active: active (running) since Thu 2021-10-21 21:16:44 SAST; 13min ago
@@ -65,4 +65,4 @@ Technologies used
    
    To stop the service, simply run:
 
-      $ sudo systemctl stop detect.service
+      $ sudo service detect stop

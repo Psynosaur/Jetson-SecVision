@@ -68,28 +68,30 @@ async def main():
     auth_bytes = authkey.encode('ascii')
     base64_bytes = base64.b64encode(auth_bytes)
     auth = base64_bytes.decode('ascii')
-    while True:
-        # start = time.time()
-        channel_frames = await af.get_frames(config.get('DVR', 'ip'), auth, config.get('DVR', 'channels'))
-        for channel, frame in channel_frames:
-            # detect objects in the image (without overlay)
-            detections = net.Detect(frame, overlay=opt.overlay)
-            now = datetime.datetime.now()
-            for detection in detections:
-                # person classID in COCO is 1
-                if detection.ClassID == 1 and detection.Confidence >= 0.80:
-                    print(f">>>>{channel} - {now.strftime('%H:%M:%S.%f')}_person found - {detection.Confidence}")
-                    imgdir = "frames/" + now.strftime('%Y-%m-%d') + "/" + f"{channel}" + "/"
-                    wd = os.path.join(cwdpath, imgdir)
-                    print(wd)
-                    try:
-                        os.makedirs(wd)
-                    except FileExistsError:
-                        # directory already exists
-                        pass
-                    jetson.utils.saveImageRGBA(wd + f"{now.strftime('%H_%M_%S.%f')}_person_frame_{detection.Confidence}.jpg", frame, 1920, 1080)
-        # end = time.time()
-        # print(f"SCAN DATA - {end - start}")
+    headers = {"Authorization": f"Basic {auth}"}
+    async with aiohttp.ClientSession(headers=headers) as session:
+        while True:
+            # start = time.time()
+            channel_frames = await af.get_frames(session, config.get('DVR', 'ip'), config.get('DVR', 'channels'))
+            for channel, frame in channel_frames:
+                # detect objects in the image (without overlay)
+                detections = net.Detect(frame, overlay=opt.overlay)
+                now = datetime.datetime.now()
+                for detection in detections:
+                    # person classID in COCO is 1
+                    if detection.ClassID == 1 and detection.Confidence >= 0.80:
+                        print(f">>>>{channel} - {now.strftime('%H:%M:%S.%f')}_person found - {detection.Confidence}")
+                        imgdir = "frames/" + now.strftime('%Y-%m-%d') + "/" + f"{channel}" + "/"
+                        wd = os.path.join(cwdpath, imgdir)
+                        print(wd)
+                        try:
+                            os.makedirs(wd)
+                        except FileExistsError:
+                            # directory already exists
+                            pass
+                        jetson.utils.saveImageRGBA(wd + f"{now.strftime('%H_%M_%S.%f')}_person_frame_{detection.Confidence}.jpg", frame, 1920, 1080)
+            # end = time.time()
+            # print(f"Full loop - {end - start}")
 
 
 if __name__ == '__main__':
