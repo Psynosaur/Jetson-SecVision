@@ -7,7 +7,7 @@ import time
 import jetson.utils
 
 
-async def main(authkey, channels):
+async def get_frames(ip, authkey, channels):
     channel_frames = []
     start = time.time()
     headers = {"Authorization": f"Basic {authkey}"}
@@ -15,8 +15,8 @@ async def main(authkey, channels):
         async def one_iteration(i):
             i += 1
             # lower resolution version of the images
-            # request_url = f"http://192.168.1.102/ISAPI/Streaming/channels/{i}01/picture"
-            request_url = f"http://192.168.1.102/ISAPI/Streaming/channels/{i}01/picture?videoResolutionWidth=1920&videoResolutionHeight=1080&snapShotImageType=JPEG"
+            # request_url =  f"http://{ip}/ISAPI/Streaming/channels/{i}01/picture"
+            request_url = f"http://{ip}/ISAPI/Streaming/channels/{i}01/picture?videoResolutionWidth=1920&videoResolutionHeight=1080&snapShotImageType=JPEG"
             async with session.get(request_url) as response:
                 if response.status == 200:
                     img = await response.read()

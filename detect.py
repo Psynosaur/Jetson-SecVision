@@ -64,13 +64,13 @@ cwdpath = os.getcwd()
 
 
 async def main():
-    authkey = f"{config.get('DVR', 'user')}:{config.get('DVR', 'password')}"
+    authkey = f"{config.get('DVR', 'username')}:{config.get('DVR', 'password')}"
     auth_bytes = authkey.encode('ascii')
     base64_bytes = base64.b64encode(auth_bytes)
     auth = base64_bytes.decode('ascii')
     while True:
         # start = time.time()
-        channel_frames = await af.main(auth, config.get('DVR', 'channels' ))
+        channel_frames = await af.get_frames(config.get('DVR', 'ip'), auth, config.get('DVR', 'channels'))
         for channel, frame in channel_frames:
             # detect objects in the image (without overlay)
             detections = net.Detect(frame, overlay=opt.overlay)
