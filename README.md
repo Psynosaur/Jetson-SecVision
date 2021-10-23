@@ -48,26 +48,32 @@ Technologies used
 
       $ sudo ./install_yolo.sh
 
-   Check status of service jetson.utils using ssd-mobilenet-v2
+   ### Check status of service jetson.utils using ssd-mobilenet-v2
 
       $ sudo service detect status
 
-   **Or** yolov4-416 with openCV
+   or yolov4-416 with openCV
 
       $ sudo service detect_yolo status
      
-   The log output can be viewed by running, this will be further implemented at a later stage...
-
-      $ sudo journalctl -u detect.service -f -n
-      $ sudo journalctl -u detect_yolo.service -f -n
-
-   To stop the service, simply run:
+   ### To stop the service, simply run:
 
       $ sudo service detect stop
+
+   or
+
       $ sudo service detect_yolo stop
 
-   Symlinks for running yolov4 version
+   ### Symlinks for running yolov4 version
 
       $ sudo ln -s /home/jetsonman/tensorrt_demos/utils/ ./utils
       $ sudo ln -s /home/jetsonman/tensorrt_demos/plugins/ ./plugins
       $ sudo ln -s /home/jetsonman/tensorrt_demos/yolo/ ./yolo
+
+   ### To uninstall the service
+
+      $ sudo ./uninstall.sh
+
+   or
+
+      $ sudo ./uninstall_yolo.sh
