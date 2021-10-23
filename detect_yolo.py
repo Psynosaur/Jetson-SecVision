@@ -75,7 +75,7 @@ def loop_and_detect(image, trt_yolo, conf_th, vis, channel):
         # print(f"{channel} : {cococlass}")
         # person classID in COCO is 1
         # confs
-        if cococlass == 0 and confs[idx] >= 0.7:
+        if cococlass == 0 and confs[idx] >= 0.8:
             now = datetime.datetime.now()
             print(f">>>>{channel} - {now.strftime('%H:%M:%S.%f')}_person found - {confs[idx]}")
             imgdir = "frames/" + now.strftime('%Y-%m-%d') + "/" + f"{channel}" + "/"

@@ -19,8 +19,9 @@ async def get_frames(session, ip, channels):
         async with session.get(request_url_1080p) as response:
             if response.status == 200:
                 img = await response.read()
-                nparr = numpy.fromstring(img, numpy.uint8)
-                img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                # nparr = numpy.fromstring(img, numpy.uint8)
+                # img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                img_np = cv2.imdecode(numpy.frombuffer(img, numpy.uint8), -1)
                 channel_frames.append((f"{ch}01", img_np))
 
     coros = [one_frame(_) for _ in range(int(channels))]
