@@ -11,8 +11,11 @@ import asyncio
 import async_frames_cv as af
 import configparser
 import base64
-
+import logging
+import threading
+import pytz
 from pathlib import Path
+import json
 
 # the tensorrt_demos directory, please build this first
 sys.path.append('/home/jetsonman/tensorrt_demos/utils')
@@ -65,47 +68,87 @@ trt_yolo = TrtYOLO(args.model, args.category_num, args.letter_box)
 home = str(Path.home())
 cwdpath = os.path.join(home, "Pictures/SecVision/")
 
+class SecVisionJetson:
+    channel_frames = []
+    channel_event = {}
 
-def loop_and_detect(image, trt_yolo, conf_th, vis, channel):
-    img = image
-    boxes, confs, clss = trt_yolo.detect(img, conf_th)
-    img = vis.draw_bboxes(img, boxes, confs, clss)
-    idx = 0
-    for cococlass in clss:
-        # print(f"{channel} : {cococlass}")
-        # person classID in COCO is 1
-        # confs
-        if cococlass == 0 and confs[idx] >= 0.8:
-            now = datetime.datetime.now()
-            print(f">>>>{channel} - {now.strftime('%H:%M:%S.%f')}_person found - {confs[idx]}")
-            imgdir = "frames/" + now.strftime('%Y-%m-%d') + "/" + f"{channel}" + "/"
-            wd = os.path.join(cwdpath, imgdir)
-            print(wd)
-            try:
-                os.makedirs(wd)
-            except FileExistsError:
-                # directory already exists
-                pass
-            # fast file save...
-            cv2.imwrite(wd + f"{now.strftime('%H_%M_%S.%f')}_person_frame.jpg", img)
-        idx += 1
+    def __init__(self, cfg) -> None:
+        self.config = cfg
+
+    @staticmethod
+    def recorder_thread(event: threading.Event, obj, time: float) -> None:
+        while not event.isSet():
+            event_is_set = event.wait(time)
+            if event_is_set:
+                logging.debug('processing event')
+            else:
+                if len(obj.channel_event) > 0:
+                    # result = lopey.run_until_complete(SecVisionJetson.get_data(sesh)).result()
+                    # obj.channel_frames.append(result)
+                    for channel in obj.channel_event:
+                        # if (datetime.now() - value) > 20:
+                        # logging.debug(f"Human detected on {event.channel} more than 20s ago")
+                        # del obj.channel_event[i] 
+                        if float(obj.channel_event[channel]) > 0:
+                            elapsed = datetime.datetime.now() - datetime.datetime.fromtimestamp(obj.channel_event[channel])
+                            logging.info(f"HUMAN(s) FOUND ON {channel} - {elapsed}s ago")
+                            if elapsed > datetime.timedelta(seconds=30):
+                                logging.info(channel + " - STOP RECORDING")
+                                obj.channel_event[channel] = "0"
+                    
+
+    async def loop_and_detect(self, image, trt_yolo, conf_th, vis, channel):
+        img = image
+        boxes, confs, clss = trt_yolo.detect(img, conf_th)
+        img = vis.draw_bboxes(img, boxes, confs, clss)
+        idx = 0
+        for cococlass in clss:
+            # print(f"{channel} : {cococlass}")
+            # person classID in COCO is 1
+            # confs
+            if cococlass == 0 and confs[idx] >= 0.85:
+                now = datetime.datetime.now()
+                logging.info(f"{channel} - {str(datetime.datetime.utcnow().replace(tzinfo=pytz.utc))} person found - {confs[idx]}")
+                logging.info(f"{channel} - START RECORDING")
+                # Over write latest human timestamp on a given channel
+                self.channel_event[channel] = datetime.datetime.timestamp(datetime.datetime.now())
+                # do request for DVR recording stuff here 
+                imgdir = "frames/" + now.strftime('%Y-%m-%d') + "/" + f"{channel}" + "/"
+                wd = os.path.join(cwdpath, imgdir)
+                print(wd)
+                try:
+                    os.makedirs(wd)
+                except FileExistsError:
+                    # directory already exists
+                    pass
+                # fast file save...
+                cv2.imwrite(wd + f"{now.strftime('%H_%M_%S.%f')}_person_frame.jpg", img)
+            idx += 1
 
 
-async def main():
-    authkey = f"{config.get('DVR', 'username')}:{config.get('DVR', 'password')}"
-    auth_bytes = authkey.encode('ascii')
-    base64_bytes = base64.b64encode(auth_bytes)
-    auth = base64_bytes.decode('ascii')
-    headers = {"Authorization": f"Basic {auth}"}
-    async with aiohttp.ClientSession(headers=headers) as session:
-        while True:
-            start = time.time()
-            channel_frames = await af.get_frames(session, config.get('DVR', 'ip'), config.get('DVR', 'channels'))
-            for channel, frame in channel_frames:
-                # detect objects in the image
-                loop_and_detect(frame, trt_yolo, 0.3, vis, channel)
-            end = time.time()
-            print(f"Full loop - {end - start}")
+    async def main(self):
+        authkey = f"{config.get('DVR', 'username')}:{config.get('DVR', 'password')}"
+        auth_bytes = authkey.encode('ascii')
+        base64_bytes = base64.b64encode(auth_bytes)
+        auth = base64_bytes.decode('ascii')
+        headers = {"Authorization": f"Basic {auth}"}
+        async with aiohttp.ClientSession(headers=headers) as session:
+            while True:
+                start = time.time()
+                channel_frames, timer = await af.get_frames(session, self.config.get('DVR', 'ip'), self.config.get('DVR', 'channels'))
+                for channel, frame in channel_frames:
+                    # detect objects in the image
+                    await self.loop_and_detect(frame, trt_yolo, 0.5, vis, channel)
+                end = time.time()
+                logging.info(f"Inference loop - {end - start - timer} - {8/(end - start - timer)}fps")
+
+    @staticmethod
+    def initworkers(obj) -> None:
+        e = threading.Event()
+        heartbeatworker = threading.Thread(name='heartbeat-daemon', target=SecVisionJetson.recorder_thread,
+                                           args=(e, obj, 5))
+        heartbeatworker.setDaemon(True)
+        heartbeatworker.start()
 
 
 if __name__ == '__main__':
@@ -113,5 +156,8 @@ if __name__ == '__main__':
     settings = os.path.join(cwd, 'settings.ini')
     config = configparser.ConfigParser()
     config.read(settings)
+    logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+    app = SecVisionJetson(config)
+    SecVisionJetson.initworkers(app)
     loop = asyncio.get_event_loop()
-    result = loop.run_until_complete(main())
+    result = loop.run_until_complete(app.main())

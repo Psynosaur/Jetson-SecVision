@@ -5,6 +5,7 @@ from PIL import Image
 import aiohttp
 import time
 import cv2
+import logging
 
 async def get_frames(session, ip, channels):
     channel_frames = []
@@ -15,7 +16,7 @@ async def get_frames(session, ip, channels):
         # lower resolution version of the images
         # request_url_low =  f"http://{ip}/ISAPI/Streaming/channels/{ch}01/picture"
         # request_url_720p = f"http://{ip}/ISAPI/Streaming/channels/{ch}01/picture?videoResolutionWidth=1280&videoResolutionHeight=720&snapShotImageType=JPEG"
-        request_url_1080p = f"http://{ip}/ISAPI/Streaming/channels/{ch}01/picture?videoResolutionWidth=1920&videoResolutionHeight=1080&snapShotImageType=JPEG"
+        request_url_1080p = f"http://{ip}/ISAPI/Streaming/channels/{ch}02/picture?videoResolutionWidth=1920&videoResolutionHeight=1080&snapShotImageType=JPEG"
         async with session.get(request_url_1080p) as response:
             if response.status == 200:
                 img = await response.read()
@@ -27,5 +28,5 @@ async def get_frames(session, ip, channels):
     coros = [one_frame(_) for _ in range(int(channels))]
     await asyncio.gather(*coros)
     end = time.time()
-    print(f"GET DATA - {end - start}")
-    return channel_frames
+    logging.info(f"GET DATA - {end - start}")
+    return channel_frames, end - start

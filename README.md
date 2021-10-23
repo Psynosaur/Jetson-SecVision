@@ -1,7 +1,5 @@
 #### SecVision
 
-This uses ssd-mobilenet-v2 that comes with the 
-
 Technologies used
  
  - Jetson Nano 
@@ -66,9 +64,9 @@ Technologies used
 
    ### Symlinks for running yolov4 version
 
-      $ sudo ln -s /home/jetsonman/tensorrt_demos/utils/ ./utils
-      $ sudo ln -s /home/jetsonman/tensorrt_demos/plugins/ ./plugins
-      $ sudo ln -s /home/jetsonman/tensorrt_demos/yolo/ ./yolo
+      $ sudo ln -s ${HOME}/tensorrt_demos/utils/ ./utils
+      $ sudo ln -s ${HOME}/tensorrt_demos/plugins/ ./plugins
+      $ sudo ln -s ${HOME}/tensorrt_demos/yolo/ ./yolo
 
    ### To uninstall the service
 

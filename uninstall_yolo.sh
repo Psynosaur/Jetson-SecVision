@@ -17,7 +17,7 @@ echo "done"
 #rm -r /usr/bin/secvision 2>/dev/null
 #echo "done"
 
-echo "removing service from /lib/systemd/system/..."
+echo "removing service from /etc/systemd/system/..."
 rm /etc/systemd/system/detect_yolo.service
 echo "done"
 
