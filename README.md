@@ -1,6 +1,6 @@
 #### SecVision
 
-This will be a computer vision project to classify persons with RTSP video/HTTP Image feeds common to many security systems
+This uses ssd-mobilenet-v2 that comes with the 
 
 Technologies used
  
@@ -23,46 +23,39 @@ Technologies used
    
       pip3 install aiofiles aiohttp asyncio
 
-      python3 detect.py
+   jetson inference stack 
 
+      python3 detect.py
+   
+   tensort stack with yolov4
+
+      python3 detect_yolo.py
    Takes approximately 1.1 seconds to do its thing for 8x2MP images, sometimes a little longer at 1.5s when writing files
 
    ### Automatic / Continuous Operation
    
-      $ sudo cp detect.service /etc/systemd/system/
-      $ sudo nano /etc/systemd/system/detect.service
-   
-   Change usr and paths in detect.service file to suite you environment then 
+   Change User in detect.service file to suite your environment then 
 
-      $ sudo systemctl enable detect.service
-      $ sudo service detect start
+      $ sudo ./install.sh
+    
+   Change User in detect_yolo.service file to suite your environment then 
 
-   Check status of service 
+      $ sudo ./install_cv.sh
+
+   Check status of service jetson.utils using ssd-mobilenet-v2
 
       $ sudo service detect status
-      ● detect.service - secvision
-         Loaded: loaded (/etc/systemd/system/detect.service; enabled; vendor preset: enabled)
-         Active: active (running) since Thu 2021-10-21 21:16:44 SAST; 13min ago
-       Main PID: 11801 (python3)
-          Tasks: 6 (limit: 4181)
-         CGroup: /system.slice/detect.service
-                 └─11801 /usr/bin/python3 /home/jetsonman/SecVisionJetson/detect.py --threshold 0.7
-   
-      Oct 21 21:16:52 jetson secvision[11801]: [TRT]    Using cuDNN as a tactic source
-      Oct 21 21:16:52 jetson secvision[11801]: [TRT]    [MemUsageChange] Init cuDNN: CPU +240, GPU +298, now: CPU 683, GPU 3042 (MiB)
-      Oct 21 21:16:52 jetson secvision[11801]: [TRT]    [MemUsageChange] Init cuBLAS/cuBLASLt: CPU +0, GPU +0, now: CPU 683, GPU 3042 (MiB)
-      Oct 21 21:16:52 jetson secvision[11801]: [TRT]    Deserialization required 3106252 microseconds.
-      Oct 21 21:16:52 jetson secvision[11801]: [TRT]    [MemUsageSnapshot] deserializeCudaEngine end: CPU 683 MiB, GPU 3042 MiB
-      Oct 21 21:16:52 jetson secvision[11801]: [TRT]    [MemUsageSnapshot] ExecutionContext creation begin: CPU 683 MiB, GPU 3042 MiB
-      Oct 21 21:16:52 jetson secvision[11801]: [TRT]    Using cublas a tactic source
-      Oct 21 21:16:52 jetson secvision[11801]: [TRT]    [MemUsageChange] Init cuBLAS/cuBLASLt: CPU +1, GPU +0, now: CPU 684, GPU 3042 (MiB)
-      Oct 21 21:16:52 jetson secvision[11801]: [TRT]    Using cuDNN as a tactic source
-      Oct 21 21:16:52 jetson secvision[11801]: [TRT]    [MemUsageChange] Init cuDNN: CPU +0, GPU +0, now: CPU 684, GPU 3042 (MiB)
 
+   **Or** yolov4-416 with openCV
+
+      $ sudo service detect_yolo status
+     
    The log output can be viewed by running, this will be further implemented at a later stage...
 
       $ sudo journalctl -u detect.service -f -n
-   
+      $ sudo journalctl -u detect_yolo.service -f -n
+
    To stop the service, simply run:
 
       $ sudo service detect stop
+      $ sudo service detect_yolo stop

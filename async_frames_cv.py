@@ -4,8 +4,7 @@ import numpy
 from PIL import Image
 import aiohttp
 import time
-import jetson.utils
-
+import cv2
 
 async def get_frames(session, ip, channels):
     channel_frames = []
@@ -20,9 +19,9 @@ async def get_frames(session, ip, channels):
         async with session.get(request_url_720p) as response:
             if response.status == 200:
                 img = await response.read()
-                img_arr = numpy.array(Image.open(io.BytesIO(img)))
-                np_image = jetson.utils.cudaFromNumpy(img_arr)
-                channel_frames.append((f"{ch}01", np_image, img))
+                nparr = numpy.fromstring(img, numpy.uint8)
+                img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                channel_frames.append((f"{ch}01", img_np))
 
     coros = [one_frame(_) for _ in range(int(channels))]
     await asyncio.gather(*coros)

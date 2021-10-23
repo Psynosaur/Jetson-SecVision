@@ -41,6 +41,8 @@ import async_frames as af
 import configparser
 import base64
 
+from pathlib import Path
+
 # parse the command line
 parser = argparse.ArgumentParser(description="Locate objects in a live camera stream using an object detection DNN.",
                                  formatter_class=argparse.RawTextHelpFormatter)
@@ -60,7 +62,9 @@ except:
 
 # load the object detection network
 net = jetson.inference.detectNet(opt.network, sys.argv, opt.threshold)
-cwdpath = os.getcwd()
+
+home = str(Path.home())
+cwdpath = os.path.join(home, "Pictures/SecVision/")
 
 
 async def main():
@@ -78,12 +82,13 @@ async def main():
                 detections = net.Detect(frame, overlay=opt.overlay)
                 now = datetime.datetime.now()
                 for detection in detections:
+                    print(f"{channel} : {detection}")
                     # person classID in COCO is 1
-                    if detection.ClassID == 1 and detection.Confidence >= 0.80:
+                    if detection.ClassID == 1 and detection.Confidence >= 0.70:
                         print(f">>>>{channel} - {now.strftime('%H:%M:%S.%f')}_person found - {detection.Confidence}")
                         imgdir = "frames/" + now.strftime('%Y-%m-%d') + "/" + f"{channel}" + "/"
                         wd = os.path.join(cwdpath, imgdir)
-                        # print(wd)
+                        print(wd)
                         try:
                             os.makedirs(wd)
                         except FileExistsError:
