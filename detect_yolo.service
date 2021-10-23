@@ -3,13 +3,12 @@ Description=SecVision
 After=syslog.target
 
 [Service]
-Type=simple
-ExecStart=/usr/bin/python3 -u /usr/local/bin/secvision/detect_yolo.py
+WorkingDirectory=/home/jetsonman/SecVisionJetson/
+ExecStart=/usr/bin/python3 /home/jetsonman/SecVisionJetson/detect_yolo.py
 Restart=always
 RestartSec=120
 User=jetsonman
-SyslogIdentifier=secvision
-StandardOutput=journal+console
+SyslogIdentifier=secvision_yolo
 
 [Install]
 WantedBy=multi-user.target

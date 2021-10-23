@@ -1,36 +1,11 @@
-#!/usr/bin/python3
-#
-# Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
-#
-# Permission is hereby granted, free of charge, to any person obtaining a
-# copy of this software and associated documentation files (the "Software"),
-# to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the
-# Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-#
 import datetime
 import io
-import jetson.inference
-import jetson.utils
 
 import argparse
 import os
 import sys
 import time
 
-import aiofiles
 import numpy
 from PIL import Image
 import PIL
@@ -43,7 +18,7 @@ import base64
 from pathlib import Path
 import argparse
 
-# the mock-0.3.1 dir contains testcase.py, testutils.py & mock.py
+# the tensorrt_demos directory, please build this first
 sys.path.append('/home/jetsonman/tensorrt_demos/utils')
 
 import cv2
@@ -53,6 +28,7 @@ from yolo_classes import get_cls_dict
 from display import open_window, set_display, show_fps
 from visualization import BBoxVisualization
 from yolo_with_plugins import TrtYOLO
+
 
 def parse_args():
     """Parse input arguments."""
@@ -76,6 +52,7 @@ def parse_args():
     args = parser.parse_args()
     return args
 
+
 args = parse_args()
 if args.category_num <= 0:
     raise SystemExit('ERROR: bad category_num (%d)!' % args.category_num)
@@ -92,7 +69,6 @@ trt_yolo = TrtYOLO(args.model, args.category_num, args.letter_box)
 home = str(Path.home())
 cwdpath = os.path.join(home, "Pictures/SecVision/")
 
-# WINDOW_NAME = 'TrtYOLODemo'
 
 def loop_and_detect(image, trt_yolo, conf_th, vis, channel):
     img = image
@@ -102,7 +78,7 @@ def loop_and_detect(image, trt_yolo, conf_th, vis, channel):
     for cococlass in clss:
         # print(f"{channel} : {cococlass}")
         # person classID in COCO is 1
-        #confs
+        # confs
         if cococlass == 0 and confs[idx] >= 0.7:
             now = datetime.datetime.now()
             print(f">>>>{channel} - {now.strftime('%H:%M:%S.%f')}_person found - {confs[idx]}")

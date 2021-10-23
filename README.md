@@ -26,11 +26,14 @@ Technologies used
    jetson inference stack 
 
       python3 detect.py
+
+   Takes approximately 1.1 seconds to do its thing for 8x2MP images, sometimes a little longer at 1.5s when writing files
    
-   tensort stack with yolov4
+   tensort stack with yolov4, needs symlinks to tensorrt_demo project
 
       python3 detect_yolo.py
-   Takes approximately 1.1 seconds to do its thing for 8x2MP images, sometimes a little longer at 1.5s when writing files
+
+   Takes approximately 2.6 seconds to do its thing for 8x2MP images
 
    ### Automatic / Continuous Operation
    
@@ -40,7 +43,7 @@ Technologies used
     
    Change User in detect_yolo.service file to suite your environment then 
 
-      $ sudo ./install_cv.sh
+      $ sudo ./install_yolo.sh
 
    Check status of service jetson.utils using ssd-mobilenet-v2
 
@@ -59,3 +62,9 @@ Technologies used
 
       $ sudo service detect stop
       $ sudo service detect_yolo stop
+
+   Symlinks for running yolov4 version
+
+      $ sudo ln -s /home/jetsonman/tensorrt_demos/utils/ ./utils
+      $ sudo ln -s /home/jetsonman/tensorrt_demos/plugins/ ./plugins
+      $ sudo ln -s /home/jetsonman/tensorrt_demos/yolo/ ./yolo
