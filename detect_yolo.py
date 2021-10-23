@@ -6,9 +6,6 @@ import os
 import sys
 import time
 
-import numpy
-from PIL import Image
-import PIL
 import aiohttp
 import asyncio
 import async_frames_cv as af
@@ -16,7 +13,6 @@ import configparser
 import base64
 
 from pathlib import Path
-import argparse
 
 # the tensorrt_demos directory, please build this first
 sys.path.append('/home/jetsonman/tensorrt_demos/utils')
