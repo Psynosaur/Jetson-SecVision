@@ -21,7 +21,7 @@ async def get_frames(session, ip, channels):
                 img = await response.read()
                 img_arr = numpy.array(Image.open(io.BytesIO(img)))
                 np_image = jetson.utils.cudaFromNumpy(img_arr)
-                channel_frames.append((f"{ch}01", np_image))
+                channel_frames.append((f"{ch}01", np_image, img))
 
     coros = [one_frame(_) for _ in range(int(channels))]
     await asyncio.gather(*coros)

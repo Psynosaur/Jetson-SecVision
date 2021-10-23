@@ -71,9 +71,9 @@ async def main():
     headers = {"Authorization": f"Basic {auth}"}
     async with aiohttp.ClientSession(headers=headers) as session:
         while True:
-            # start = time.time()
+            start = time.time()
             channel_frames = await af.get_frames(session, config.get('DVR', 'ip'), config.get('DVR', 'channels'))
-            for channel, frame in channel_frames:
+            for channel, frame, bytes in channel_frames:
                 # detect objects in the image (without overlay)
                 detections = net.Detect(frame, overlay=opt.overlay)
                 now = datetime.datetime.now()
@@ -83,15 +83,19 @@ async def main():
                         print(f">>>>{channel} - {now.strftime('%H:%M:%S.%f')}_person found - {detection.Confidence}")
                         imgdir = "frames/" + now.strftime('%Y-%m-%d') + "/" + f"{channel}" + "/"
                         wd = os.path.join(cwdpath, imgdir)
-                        print(wd)
+                        # print(wd)
                         try:
                             os.makedirs(wd)
                         except FileExistsError:
                             # directory already exists
                             pass
-                        jetson.utils.saveImageRGBA(wd + f"{now.strftime('%H_%M_%S.%f')}_person_frame_{detection.Confidence}.jpg", frame, 1920, 1080)
-            # end = time.time()
-            # print(f"Full loop - {end - start}")
+                        # slow file save...
+                        # jetson.utils.saveImageRGBA(wd + f"{now.strftime('%H_%M_%S.%f')}_person_frame_{detection.Confidence}.jpg", frame, 1920, 1080)
+                        # fast file save...
+                        image = Image.open(io.BytesIO(bytes))
+                        image.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_frame_{detection.Confidence}.jpg")
+            end = time.time()
+            print(f"Full loop - {end - start}")
 
 
 if __name__ == '__main__':
