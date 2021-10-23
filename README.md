@@ -6,6 +6,7 @@ Technologies used
  
  - Jetson Nano 
  - Jetson Inference - Detectnet
+ - TensorRT - Yolov4
  - HikVision DVR
 
 ### Goals
@@ -23,17 +24,17 @@ Technologies used
    
       pip3 install aiofiles aiohttp asyncio
 
-   jetson inference stack 
+   ### jetson inference stack 
 
       python3 detect.py
 
    Takes approximately 1.1 seconds to do its thing for 8x2MP images, sometimes a little longer at 1.5s when writing files
    
-   tensort stack with yolov4, needs symlinks to tensorrt_demo project
+   ### Tensort stack with yolov4, needs symlinks to tensorrt_demo project
 
       python3 detect_yolo.py
 
-   Takes approximately 2.6 seconds to do its thing for 8x2MP images
+   Takes approximately 2.6 seconds to do its thing for 8x2MP images and is very accurate
 
    ### Automatic / Continuous Operation
    
