@@ -3,6 +3,7 @@ Description=SecVision
 After=syslog.target
 
 [Service]
+Environment=PYTHONUNBUFFERED=1
 WorkingDirectory=/home/jetsonman/SecVisionJetson/
 ExecStart=/usr/bin/python3 /home/jetsonman/SecVisionJetson/detect_yolo.py
 Restart=always

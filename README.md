@@ -6,7 +6,8 @@ Technologies used
  
  - Jetson Nano 
  - Jetson Inference - Detectnet
- - TensorRT - Yolov4
+ - TensorRT - Yolov4 **PLEASE BUILD THIS PROJECT FIRST** 
+   - https://github.com/jkjung-avt/tensorrt_demos
  - HikVision DVR
 
 ### Goals
@@ -34,7 +35,8 @@ Technologies used
 
       python3 detect_yolo.py
 
-   Takes approximately 2.6 seconds to do its thing for 8x2MP images and is very accurate
+   Takes approximately 2.6 seconds round trip to do its thing for 8x2MP images and is very accurate
+   Detection step takes 1.75s for a network fps of **~4.57FPS**.
 
    ### Automatic / Continuous Operation
    
