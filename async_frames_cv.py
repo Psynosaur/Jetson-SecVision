@@ -23,10 +23,11 @@ async def get_frames(session, ip, channels):
                 # nparr = numpy.fromstring(img, numpy.uint8)
                 # img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
                 img_np = cv2.imdecode(numpy.frombuffer(img, numpy.uint8), -1)
+                # img_np = numpy.array(Image.open(io.BytesIO(img)))
                 channel_frames.append((f"{ch}01", img_np))
 
     coros = [one_frame(_) for _ in range(int(channels))]
     await asyncio.gather(*coros)
     end = time.time()
-    logging.info(f"GET DATA - {end - start}")
+    # logging.info(f"GET DATA - {end - start}")
     return channel_frames, end - start

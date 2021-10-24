@@ -16,9 +16,10 @@ import threading
 import pytz
 from pathlib import Path
 import json
+import os
 
 # the tensorrt_demos directory, please build this first
-sys.path.append('/home/jetsonman/tensorrt_demos/utils')
+sys.path.append('../tensorrt_demos/utils')
 
 import cv2
 import pycuda.autoinit  # This is needed for initializing CUDA driver
@@ -68,6 +69,7 @@ trt_yolo = TrtYOLO(args.model, args.category_num, args.letter_box)
 home = str(Path.home())
 cwdpath = os.path.join(home, "Pictures/SecVision/")
 
+
 class SecVisionJetson:
     channel_frames = []
     channel_event = {}
@@ -78,10 +80,15 @@ class SecVisionJetson:
     @staticmethod
     def recorder_thread(event: threading.Event, obj, time: float) -> None:
         while not event.isSet():
+            garbage_collector = []
             event_is_set = event.wait(time)
             if event_is_set:
                 logging.debug('processing event')
             else:
+                cpu_temp = os.popen("cat /sys/devices/virtual/thermal/thermal_zone0/temp").read()
+                gpu_temp = os.popen("cat /sys/devices/virtual/thermal/thermal_zone1/temp").read()
+                fan = os.popen("cat /sys/devices/pwm-fan/hwmon/hwmon1/cur_pwm").read()
+                rpm = int(fan) * (2000 / 256)
                 if len(obj.channel_event) > 0:
                     # result = lopey.run_until_complete(SecVisionJetson.get_data(sesh)).result()
                     # obj.channel_frames.append(result)
@@ -90,12 +97,21 @@ class SecVisionJetson:
                         # logging.debug(f"Human detected on {event.channel} more than 20s ago")
                         # del obj.channel_event[i] 
                         if float(obj.channel_event[channel]) > 0:
-                            elapsed = datetime.datetime.now() - datetime.datetime.fromtimestamp(obj.channel_event[channel])
-                            logging.info(f"HUMAN(s) FOUND ON {channel} - {elapsed}s ago")
+                            elapsed = datetime.datetime.now() - datetime.datetime.fromtimestamp(
+                                obj.channel_event[channel])
+                            logging.info(
+                                f"{str(datetime.datetime.utcnow().replace(tzinfo=pytz.utc))} : {channel} Person found {elapsed}s ago")
+                            logging.info(
+                                f"{str(datetime.datetime.utcnow().replace(tzinfo=pytz.utc))} : CPU {int(cpu_temp) / 1000:.2f}°C / GPU {int(gpu_temp) / 1000:.2f}°C / FAN {rpm:.2f}RPM")
                             if elapsed > datetime.timedelta(seconds=30):
-                                logging.info(channel + " - STOP RECORDING")
-                                obj.channel_event[channel] = "0"
-                    
+                                logging.info(
+                                    f"{str(datetime.datetime.utcnow().replace(tzinfo=pytz.utc))} : {channel} Stop recording")
+                                garbage_collector.append(channel)
+                    for channel in garbage_collector:
+                        obj.channel_event.pop(channel, None)
+                else:
+                    logging.info(
+                        f"{str(datetime.datetime.utcnow().replace(tzinfo=pytz.utc))} : CPU {int(cpu_temp) / 1000:.2f}°C / GPU {int(gpu_temp) / 1000:.2f}°C / FAN {rpm}")
 
     async def loop_and_detect(self, image, trt_yolo, conf_th, vis, channel):
         img = image
@@ -108,14 +124,14 @@ class SecVisionJetson:
             # confs
             if cococlass == 0 and confs[idx] >= 0.85:
                 now = datetime.datetime.now()
-                logging.info(f"{channel} - {str(datetime.datetime.utcnow().replace(tzinfo=pytz.utc))} person found - {confs[idx]}")
-                logging.info(f"{channel} - START RECORDING")
+                logging.info(
+                    f"{str(datetime.datetime.utcnow().replace(tzinfo=pytz.utc))} : {channel} Person found - Start recording")
+                # if self.channel_event[channel]:
                 # Over write latest human timestamp on a given channel
                 self.channel_event[channel] = datetime.datetime.timestamp(datetime.datetime.now())
                 # do request for DVR recording stuff here 
                 imgdir = "frames/" + now.strftime('%Y-%m-%d') + "/" + f"{channel}" + "/"
                 wd = os.path.join(cwdpath, imgdir)
-                print(wd)
                 try:
                     os.makedirs(wd)
                 except FileExistsError:
@@ -124,7 +140,6 @@ class SecVisionJetson:
                 # fast file save...
                 cv2.imwrite(wd + f"{now.strftime('%H_%M_%S.%f')}_person_frame.jpg", img)
             idx += 1
-
 
     async def main(self):
         authkey = f"{config.get('DVR', 'username')}:{config.get('DVR', 'password')}"
@@ -135,12 +150,15 @@ class SecVisionJetson:
         async with aiohttp.ClientSession(headers=headers) as session:
             while True:
                 start = time.time()
-                channel_frames, timer = await af.get_frames(session, self.config.get('DVR', 'ip'), self.config.get('DVR', 'channels'))
+                channel_frames, timer = await af.get_frames(session, self.config.get('DVR', 'ip'),
+                                                            self.config.get('DVR', 'channels'))
                 for channel, frame in channel_frames:
                     # detect objects in the image
                     await self.loop_and_detect(frame, trt_yolo, 0.5, vis, channel)
                 end = time.time()
-                logging.info(f"Inference loop - {end - start - timer} - {8/(end - start - timer)}fps")
+                logging.info(
+                    f"{str(datetime.datetime.utcnow().replace(tzinfo=pytz.utc))} : Network {8 / (end - start - timer):.2f}fps")
+                # logging.info(f"Inference loop - {end - start - timer} - {8/(end - start - timer)}fps")
 
     @staticmethod
     def initworkers(obj) -> None:
