@@ -92,8 +92,14 @@ class SecVisionJetson:
             if event_is_set:
                 logging.debug('processing event')
             else:
-                cpu_temp = os.popen("cat /sys/devices/virtual/thermal/thermal_zone0/temp").read()
-                gpu_temp = os.popen("cat /sys/devices/virtual/thermal/thermal_zone1/temp").read()
+                # Jetson thermal sensors
+                ao_temp = os.popen("cat /sys/devices/virtual/thermal/thermal_zone0/temp").read()
+                cpu_temp = os.popen("cat /sys/devices/virtual/thermal/thermal_zone1/temp").read()
+                gpu_temp = os.popen("cat /sys/devices/virtual/thermal/thermal_zone2/temp").read()
+                pll_temp = os.popen("cat /sys/devices/virtual/thermal/thermal_zone3/temp").read()
+                pmic_temp = os.popen("cat /sys/devices/virtual/thermal/thermal_zone4/temp").read()
+                thermal = os.popen("cat /sys/devices/virtual/thermal/thermal_zone5/temp").read()
+                # Fan PWM reading
                 pwm = os.popen("cat /sys/devices/pwm-fan/hwmon/hwmon1/cur_pwm").read()
                 rpm = int(pwm) * (2000 / 256)
                 if len(obj.channel_event) > 0:
@@ -107,9 +113,11 @@ class SecVisionJetson:
                             elapsed = datetime.datetime.now() - datetime.datetime.fromtimestamp(
                                 obj.channel_event[channel])
                             logging.info(
-                                f"{str(datetime.datetime.utcnow().replace(tzinfo=pytz.utc))} : {channel} Person found {elapsed}s ago")
+                                f"{channel} Person found {elapsed}s ago")
                             logging.info(
-                                f"{str(datetime.datetime.utcnow().replace(tzinfo=pytz.utc))} : CPU {int(cpu_temp) / 1000:.2f}°C / GPU {int(gpu_temp) / 1000:.2f}°C / FAN {rpm:.2f}RPM")
+                                f" AO {int(ao_temp) / 1000:.2f}°C / CPU {int(cpu_temp) / 1000:.2f}°C /"
+                                f" GPU {int(gpu_temp) / 1000:.2f}°C / PLL {int(pll_temp) / 1000:.2f}°C /"
+                                f" THERM {int(thermal) / 1000:.2f}°C / FAN {rpm:.2f}RPM")
                             if elapsed > datetime.timedelta(seconds=30):
                                 garbage_collector.append(channel)
                     for channel in garbage_collector:
@@ -117,7 +125,9 @@ class SecVisionJetson:
                         obj.gc.append(channel)
                 else:
                     logging.info(
-                        f"{str(datetime.datetime.utcnow().replace(tzinfo=pytz.utc))} : CPU {int(cpu_temp) / 1000:.2f}°C / GPU {int(gpu_temp) / 1000:.2f}°C / FAN {rpm}")
+                        f" AO {int(ao_temp) / 1000:.2f}°C / CPU {int(cpu_temp) / 1000:.2f}°C /"
+                        f" GPU {int(gpu_temp) / 1000:.2f}°C / PLL {int(pll_temp) / 1000:.2f}°C /"
+                        f" THERM {int(thermal) / 1000:.2f}°C / FAN {rpm:.2f}RPM")
 
     async def trigger_zone(self, session,  zone, high):
         url = f"http://{self.config.get('DVR', 'ip')}/ISAPI/System/IO/outputs/{zone}/trigger"
@@ -129,7 +139,7 @@ class SecVisionJetson:
         async with session.put(url, data=data) as response:
             if response.status == 200:
                 logging.info(
-                    f"{str(datetime.datetime.utcnow().replace(tzinfo=pytz.utc))} : Zone {zone} triggered")
+                    f"Zone {zone} triggered")
 
     async def loop_and_detect(self, image, trt_yolo, conf_th, vis, channel, session):
         img = image
@@ -145,7 +155,7 @@ class SecVisionJetson:
                 now = datetime.datetime.now()
                 zone = await self.determine_zone(channel)
                 logging.info(
-                    f"{str(datetime.datetime.utcnow().replace(tzinfo=pytz.utc))} : {channel} Person found - Zone {zone} start recording")
+                    f" {channel} Person found - Zone {zone} start recording")
                 await self.trigger_zone(session, zone, True)
                 # if self.channel_event[channel]:
                 # Over write latest human timestamp on a given channel
@@ -190,11 +200,10 @@ class SecVisionJetson:
                     await self.loop_and_detect(frame, trt_yolo, 0.5, vis, channel, session)
                 end = time.time()
                 logging.info(
-                    f"{str(datetime.datetime.utcnow().replace(tzinfo=pytz.utc))} : Network {8 / (end - start - timer):.2f}fps")
+                    f" Network {8 / (end - start - timer):.2f}fps")
                 for channel in self.gc:
                     await self.trigger_zone(session, await self.determine_zone(channel), False)
                 self.gc = []
-                    # async with session.get(request_url_1080p) as response:
                 # logging.info(f"Inference loop - {end - start - timer} - {8/(end - start - timer)}fps")
 
     
