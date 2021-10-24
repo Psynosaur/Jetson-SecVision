@@ -1,27 +1,24 @@
-import datetime
-import io
-
-import argparse
-import os
-import sys
-import time
-
 import aiohttp
+import argparse
 import asyncio
 import async_frames_cv as af
-import configparser
 import base64
-import logging
-import threading
-import pytz
-from pathlib import Path
+import configparser
+import cv2
+import datetime
+import io
 import json
+import logging
 import os
+from pathlib import Path
+import pytz
+import sys
+import threading
+import time
 
 # the tensorrt_demos directory, please build this first
 sys.path.append('../tensorrt_demos/utils')
 
-import cv2
 import pycuda.autoinit  # This is needed for initializing CUDA driver
 
 from yolo_classes import get_cls_dict
@@ -87,8 +84,8 @@ class SecVisionJetson:
             else:
                 cpu_temp = os.popen("cat /sys/devices/virtual/thermal/thermal_zone0/temp").read()
                 gpu_temp = os.popen("cat /sys/devices/virtual/thermal/thermal_zone1/temp").read()
-                fan = os.popen("cat /sys/devices/pwm-fan/hwmon/hwmon1/cur_pwm").read()
-                rpm = int(fan) * (2000 / 256)
+                pwm = os.popen("cat /sys/devices/pwm-fan/hwmon/hwmon1/cur_pwm").read()
+                rpm = int(pwm) * (2000 / 256)
                 if len(obj.channel_event) > 0:
                     # result = lopey.run_until_complete(SecVisionJetson.get_data(sesh)).result()
                     # obj.channel_frames.append(result)
