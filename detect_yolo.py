@@ -65,14 +65,24 @@ trt_yolo = TrtYOLO(args.model, args.category_num, args.letter_box)
 # determine user home directory for saving detection frames
 home = str(Path.home())
 cwdpath = os.path.join(home, "Pictures/SecVision/")
-
+xml_on = "<IOPortData version=\"1.0\" xmlns=\"http://www.hikvision.com/ver20/XMLSchema\"><outputState>high</outputState></IOPortData>"
+xml_off = "<IOPortData version=\"1.0\" xmlns=\"http://www.hikvision.com/ver20/XMLSchema\"><outputState>low</outputState></IOPortData>"
 
 class SecVisionJetson:
     channel_frames = []
     channel_event = {}
+    gc = []
 
     def __init__(self, cfg) -> None:
         self.config = cfg
+    
+    @staticmethod
+    def initworkers(obj) -> None:
+        e = threading.Event()
+        heartbeatworker = threading.Thread(name='heartbeat-daemon', target=SecVisionJetson.recorder_thread,
+                                           args=(e, obj, 5))
+        heartbeatworker.setDaemon(True)
+        heartbeatworker.start()
 
     @staticmethod
     def recorder_thread(event: threading.Event, obj, time: float) -> None:
@@ -101,28 +111,42 @@ class SecVisionJetson:
                             logging.info(
                                 f"{str(datetime.datetime.utcnow().replace(tzinfo=pytz.utc))} : CPU {int(cpu_temp) / 1000:.2f}°C / GPU {int(gpu_temp) / 1000:.2f}°C / FAN {rpm:.2f}RPM")
                             if elapsed > datetime.timedelta(seconds=30):
-                                logging.info(
-                                    f"{str(datetime.datetime.utcnow().replace(tzinfo=pytz.utc))} : {channel} Stop recording")
                                 garbage_collector.append(channel)
                     for channel in garbage_collector:
                         obj.channel_event.pop(channel, None)
+                        obj.gc.append(channel)
                 else:
                     logging.info(
                         f"{str(datetime.datetime.utcnow().replace(tzinfo=pytz.utc))} : CPU {int(cpu_temp) / 1000:.2f}°C / GPU {int(gpu_temp) / 1000:.2f}°C / FAN {rpm}")
 
-    async def loop_and_detect(self, image, trt_yolo, conf_th, vis, channel):
+    async def trigger_zone(self, session,  zone, high):
+        url = f"http://{self.config.get('DVR', 'ip')}/ISAPI/System/IO/outputs/{zone}/trigger"
+        data = ""
+        if high == True:
+            data = xml_on
+        else:
+            data = xml_off
+        async with session.put(url, data=data) as response:
+            if response.status == 200:
+                logging.info(
+                    f"{str(datetime.datetime.utcnow().replace(tzinfo=pytz.utc))} : Zone {zone} triggered")
+
+    async def loop_and_detect(self, image, trt_yolo, conf_th, vis, channel, session):
         img = image
         boxes, confs, clss = trt_yolo.detect(img, conf_th)
         img = vis.draw_bboxes(img, boxes, confs, clss)
         idx = 0
+        zone = 0
         for cococlass in clss:
             # print(f"{channel} : {cococlass}")
             # person classID in COCO is 1
             # confs
             if cococlass == 0 and confs[idx] >= 0.85:
                 now = datetime.datetime.now()
+                zone = await self.determine_zone(channel)
                 logging.info(
-                    f"{str(datetime.datetime.utcnow().replace(tzinfo=pytz.utc))} : {channel} Person found - Start recording")
+                    f"{str(datetime.datetime.utcnow().replace(tzinfo=pytz.utc))} : {channel} Person found - Zone {zone} start recording")
+                await self.trigger_zone(session, zone, True)
                 # if self.channel_event[channel]:
                 # Over write latest human timestamp on a given channel
                 self.channel_event[channel] = datetime.datetime.timestamp(datetime.datetime.now())
@@ -138,6 +162,18 @@ class SecVisionJetson:
                 cv2.imwrite(wd + f"{now.strftime('%H_%M_%S.%f')}_person_frame.jpg", img)
             idx += 1
 
+    async def determine_zone(self, channel):
+        zone = 1
+        if int(channel) <= 201:
+            zone = 1
+        elif int(channel) > 201 and int(channel) <= 401:
+            zone = 2
+        elif int(channel) > 401 and int(channel) <= 601:
+            zone = 3
+        else:
+            zone = 4
+        return zone
+
     async def main(self):
         authkey = f"{config.get('DVR', 'username')}:{config.get('DVR', 'password')}"
         auth_bytes = authkey.encode('ascii')
@@ -151,21 +187,17 @@ class SecVisionJetson:
                                                             self.config.get('DVR', 'channels'))
                 for channel, frame in channel_frames:
                     # detect objects in the image
-                    await self.loop_and_detect(frame, trt_yolo, 0.5, vis, channel)
+                    await self.loop_and_detect(frame, trt_yolo, 0.5, vis, channel, session)
                 end = time.time()
                 logging.info(
                     f"{str(datetime.datetime.utcnow().replace(tzinfo=pytz.utc))} : Network {8 / (end - start - timer):.2f}fps")
+                for channel in self.gc:
+                    await self.trigger_zone(session, await self.determine_zone(channel), False)
+                self.gc = []
+                    # async with session.get(request_url_1080p) as response:
                 # logging.info(f"Inference loop - {end - start - timer} - {8/(end - start - timer)}fps")
 
-    @staticmethod
-    def initworkers(obj) -> None:
-        e = threading.Event()
-        heartbeatworker = threading.Thread(name='heartbeat-daemon', target=SecVisionJetson.recorder_thread,
-                                           args=(e, obj, 5))
-        heartbeatworker.setDaemon(True)
-        heartbeatworker.start()
-
-
+    
 if __name__ == '__main__':
     cwd = os.path.dirname(os.path.abspath(__file__))
     settings = os.path.join(cwd, 'settings.ini')
