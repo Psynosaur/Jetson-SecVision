@@ -75,7 +75,15 @@ class SecVisionJetson:
 
     def __init__(self, cfg) -> None:
         self.config = cfg
-    
+
+    def session_auth(self):
+        authkey = f"{self.config.get('DVR', 'username')}:{self.config.get('DVR', 'password')}"
+        auth_bytes = authkey.encode('ascii')
+        base64_bytes = base64.b64encode(auth_bytes)
+        auth = base64_bytes.decode('ascii')
+        headers = {"Authorization": f"Basic {auth}"}
+        return headers
+
     @staticmethod
     def initworkers(obj) -> None:
         e = threading.Event()
@@ -92,51 +100,51 @@ class SecVisionJetson:
             if event_is_set:
                 logging.debug('processing event')
             else:
-                # Jetson thermal sensors
-                ao_temp = os.popen("cat /sys/devices/virtual/thermal/thermal_zone0/temp").read()
-                cpu_temp = os.popen("cat /sys/devices/virtual/thermal/thermal_zone1/temp").read()
-                gpu_temp = os.popen("cat /sys/devices/virtual/thermal/thermal_zone2/temp").read()
-                pll_temp = os.popen("cat /sys/devices/virtual/thermal/thermal_zone3/temp").read()
-                pmic_temp = os.popen("cat /sys/devices/virtual/thermal/thermal_zone4/temp").read()
-                thermal = os.popen("cat /sys/devices/virtual/thermal/thermal_zone5/temp").read()
-                # Fan PWM reading
-                pwm = os.popen("cat /sys/devices/pwm-fan/hwmon/hwmon1/cur_pwm").read()
-                rpm = int(pwm) * (2000 / 256)
+                ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal = SecVisionJetson.jetson_metrics()
                 if len(obj.channel_event) > 0:
-                    # result = lopey.run_until_complete(SecVisionJetson.get_data(sesh)).result()
-                    # obj.channel_frames.append(result)
                     for channel in obj.channel_event:
-                        # if (datetime.now() - value) > 20:
-                        # logging.debug(f"Human detected on {event.channel} more than 20s ago")
-                        # del obj.channel_event[i] 
                         if float(obj.channel_event[channel]) > 0:
                             elapsed = datetime.datetime.now() - datetime.datetime.fromtimestamp(
                                 obj.channel_event[channel])
                             logging.info(
                                 f" {channel} Person found {elapsed.total_seconds()}s ago")
-                            logging.info(
-                                f" CPU {int(cpu_temp) / 1000:.2f}°C / GPU {int(gpu_temp) / 1000:.2f}°C /"
-                                f" PLL {int(pll_temp) / 1000:.2f}°C")
-                            logging.info(
-                                f" AO {int(ao_temp) / 1000:.2f}°C / THERM {int(thermal) / 1000:.2f}°C / FAN {rpm:.2f}RPM ")
+                            SecVisionJetson.log_metrics(ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal)
                             if elapsed > datetime.timedelta(seconds=30):
                                 garbage_collector.append(channel)
                     for channel in garbage_collector:
                         obj.channel_event.pop(channel, None)
                         obj.gc.append(channel)
                 else:
-                    logging.info(
-                        f" CPU {int(cpu_temp) / 1000:.2f}°C / GPU {int(gpu_temp) / 1000:.2f}°C /"
-                        f" PLL {int(pll_temp) / 1000:.2f}°C")
-                    logging.info(
-                        f" AO {int(ao_temp) / 1000:.2f}°C / THERM {int(thermal) / 1000:.2f}°C / FAN {rpm:.2f}RPM ")
+                    SecVisionJetson.log_metrics(ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal)
+
+    @staticmethod
+    def log_metrics(ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal):
+        logging.info(
+            f" CPU {int(cpu_temp) / 1000:.2f}°C / GPU {int(gpu_temp) / 1000:.2f}°C /"
+            f" PLL {int(pll_temp) / 1000:.2f}°C")
+        logging.info(
+            f" AO {int(ao_temp) / 1000:.2f}°C / THERM {int(thermal) / 1000:.2f}°C / FAN {round(rpm, 0)}RPM ")
+
+    @staticmethod
+    def jetson_metrics():
+        # Jetson thermal sensors
+        ao_temp = os.popen("cat /sys/devices/virtual/thermal/thermal_zone0/temp").read()
+        cpu_temp = os.popen("cat /sys/devices/virtual/thermal/thermal_zone1/temp").read()
+        gpu_temp = os.popen("cat /sys/devices/virtual/thermal/thermal_zone2/temp").read()
+        pll_temp = os.popen("cat /sys/devices/virtual/thermal/thermal_zone3/temp").read()
+        pmic_temp = os.popen("cat /sys/devices/virtual/thermal/thermal_zone4/temp").read()
+        thermal = os.popen("cat /sys/devices/virtual/thermal/thermal_zone5/temp").read()
+        # Fan PWM reading
+        pwm = os.popen("cat /sys/devices/pwm-fan/hwmon/hwmon1/cur_pwm").read()
+        rpm = int(pwm) * (2000 / 256)
+        return ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal
 
     # DVR has 4 Alarm Output ports, they are electrically connected like so :
     # => Output 1 to Inputs 1 and 2
     # => Output 2 to Inputs 3 and 4
     # => Output 3 to Inputs 5 and 6
     # => Output 4 to Inputs 7 and 8
-    async def determine_zone(self, channel):
+    def determine_zone(self, channel):
         zone = 1
         if int(channel) <= 201:
             zone = 1
@@ -153,7 +161,7 @@ class SecVisionJetson:
     async def trigger_zone(self, session,  zone, high):
         url = f"http://{self.config.get('DVR', 'ip')}/ISAPI/System/IO/outputs/{zone}/trigger"
         data = ""
-        if high == True:
+        if high:
             data = xml_on
         else:
             data = xml_off
@@ -175,7 +183,7 @@ class SecVisionJetson:
             # confs
             if cococlass == 0 and confs[idx] >= 0.85:
                 now = datetime.datetime.now()
-                zone = await self.determine_zone(channel)
+                zone = self.determine_zone(channel)
                 logging.info(
                     f" {channel} Person found - Zone {zone} start recording")
                 await self.trigger_zone(session, zone, True)
@@ -196,12 +204,7 @@ class SecVisionJetson:
 
     # The main loop
     async def main(self):
-        authkey = f"{config.get('DVR', 'username')}:{config.get('DVR', 'password')}"
-        auth_bytes = authkey.encode('ascii')
-        base64_bytes = base64.b64encode(auth_bytes)
-        auth = base64_bytes.decode('ascii')
-        headers = {"Authorization": f"Basic {auth}"}
-        async with aiohttp.ClientSession(headers=headers) as session:
+        async with aiohttp.ClientSession(headers=self.session_auth()) as session:
             while True:
                 start = time.time()
                 channel_frames, timer = await af.get_frames(session, self.config.get('DVR', 'ip'),
@@ -213,7 +216,7 @@ class SecVisionJetson:
                 logging.info(
                     f" Network {8 / (end - start - timer):.2f}fps")
                 for channel in self.gc:
-                    await self.trigger_zone(session, await self.determine_zone(channel), False)
+                    await self.trigger_zone(session, self.determine_zone(channel), False)
                 self.gc = []
                 # logging.info(f"Inference loop - {end - start - timer} - {8/(end - start - timer)}fps")
 

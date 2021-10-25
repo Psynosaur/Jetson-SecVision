@@ -6,16 +6,9 @@ if [ $EUID != 0 ]; then
     exit $?
 fi
 
-#echo "setting to /usr/local/bin/secvision/..."
-#rm -r /usr/bin/secvision/ 2>/dev/null
-#mkdir -p /usr/local/bin/secvision
-#cp detect_yolo.py /usr/local/bin/secvision/
-#cp async_frames_cv.py /usr/local/bin/secvision/
-#cp settings.ini /usr/local/bin/secvision/
-#sudo -H ln -s /home/jetsonman/tensorrt_demos/yolo/ /usr/local/bin/secvision/yolo
-#sudo -H ln -s /home/jetsonman/tensorrt_demos/plugins/ /usr/local/bin/secvision/plugins
-#sudo -H ln -s /home/jetsonman/tensorrt_demos/utils/ /usr/local/bin/secvision/utils
-#echo "done"
+pwd=${pwd}
+sed -i "s?placeholder?$PWD?g" detect_yolo.service
+sed -i "s?suchuser?$SUDO_USER?g" detect_yolo.service
 
 echo "adding service to /lib/systemd/system/..."
 cp detect_yolo.service /etc/systemd/system/
