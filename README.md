@@ -3,9 +3,13 @@
 Technologies used
  
  - Jetson Nano 
- - Jetson Inference - Detectnet
- - TensorRT - Yolov4 **PLEASE BUILD THIS PROJECT FIRST** 
-   - https://github.com/jkjung-avt/tensorrt_demos
+ - Networks
+   - detect.py
+     - Jetson Inference - Detectnet 
+   - detect_yolo.py
+     - TensorRT - Yolov4 - **PLEASE BUILD THIS PROJECT FIRST** 
+     - https://github.com/jkjung-avt/tensorrt_demos
+     - Environment is ready when Demo #5 runs  
  - HikVision DVR
 
 ### Goals
@@ -64,9 +68,9 @@ Technologies used
 
    ### Symlinks for running yolov4 version
 
-      $ sudo ln -s ${HOME}/tensorrt_demos/utils/ ./utils
-      $ sudo ln -s ${HOME}/tensorrt_demos/plugins/ ./plugins
-      $ sudo ln -s ${HOME}/tensorrt_demos/yolo/ ./yolo
+      $ ln -s ${HOME}/tensorrt_demos/utils/ ./utils
+      $ ln -s ${HOME}/tensorrt_demos/plugins/ ./plugins
+      $ ln -s ${HOME}/tensorrt_demos/yolo/ ./yolo
 
    ### To uninstall the service
 
