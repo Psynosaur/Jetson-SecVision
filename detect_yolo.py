@@ -113,11 +113,12 @@ class SecVisionJetson:
                             elapsed = datetime.datetime.now() - datetime.datetime.fromtimestamp(
                                 obj.channel_event[channel])
                             logging.info(
-                                f"{channel} Person found {elapsed}s ago")
+                                f" {channel} Person found {elapsed.total_seconds()}s ago")
                             logging.info(
-                                f" AO {int(ao_temp) / 1000:.2f}°C / CPU {int(cpu_temp) / 1000:.2f}°C /"
-                                f" GPU {int(gpu_temp) / 1000:.2f}°C / PLL {int(pll_temp) / 1000:.2f}°C /"
-                                f" THERM {int(thermal) / 1000:.2f}°C / FAN {rpm:.2f}RPM")
+                                f" CPU {int(cpu_temp) / 1000:.2f}°C / GPU {int(gpu_temp) / 1000:.2f}°C /"
+                                f" PLL {int(pll_temp) / 1000:.2f}°C")
+                            logging.info(
+                                f" AO {int(ao_temp) / 1000:.2f}°C / THERM {int(thermal) / 1000:.2f}°C / FAN {rpm:.2f}RPM ")
                             if elapsed > datetime.timedelta(seconds=30):
                                 garbage_collector.append(channel)
                     for channel in garbage_collector:
@@ -125,10 +126,30 @@ class SecVisionJetson:
                         obj.gc.append(channel)
                 else:
                     logging.info(
-                        f" AO {int(ao_temp) / 1000:.2f}°C / CPU {int(cpu_temp) / 1000:.2f}°C /"
-                        f" GPU {int(gpu_temp) / 1000:.2f}°C / PLL {int(pll_temp) / 1000:.2f}°C /"
-                        f" THERM {int(thermal) / 1000:.2f}°C / FAN {rpm:.2f}RPM")
+                        f" CPU {int(cpu_temp) / 1000:.2f}°C / GPU {int(gpu_temp) / 1000:.2f}°C /"
+                        f" PLL {int(pll_temp) / 1000:.2f}°C")
+                    logging.info(
+                        f" AO {int(ao_temp) / 1000:.2f}°C / THERM {int(thermal) / 1000:.2f}°C / FAN {rpm:.2f}RPM ")
 
+    # DVR has 4 Alarm Output ports, they are electrically connected like so :
+    # => Output 1 to Inputs 1 and 2
+    # => Output 2 to Inputs 3 and 4
+    # => Output 3 to Inputs 5 and 6
+    # => Output 4 to Inputs 7 and 8
+    async def determine_zone(self, channel):
+        zone = 1
+        if int(channel) <= 201:
+            zone = 1
+        elif 201 < int(channel) <= 401:
+            zone = 2
+        elif 401 < int(channel) <= 601:
+            zone = 3
+        else:
+            zone = 4
+        return zone
+
+    # Starts a recording for a zone when triggered.
+    # TODO : Trigger per channel directly, would negate the surveillance center notification...
     async def trigger_zone(self, session,  zone, high):
         url = f"http://{self.config.get('DVR', 'ip')}/ISAPI/System/IO/outputs/{zone}/trigger"
         data = ""
@@ -139,9 +160,10 @@ class SecVisionJetson:
         async with session.put(url, data=data) as response:
             if response.status == 200:
                 logging.info(
-                    f"Zone {zone} triggered")
+                    f" Zone {zone} triggered")
 
-    async def loop_and_detect(self, image, trt_yolo, conf_th, vis, channel, session):
+    # Network detection
+    async def detect(self, image, trt_yolo, conf_th, vis, channel, session):
         img = image
         boxes, confs, clss = trt_yolo.detect(img, conf_th)
         img = vis.draw_bboxes(img, boxes, confs, clss)
@@ -172,18 +194,7 @@ class SecVisionJetson:
                 cv2.imwrite(wd + f"{now.strftime('%H_%M_%S.%f')}_person_frame.jpg", img)
             idx += 1
 
-    async def determine_zone(self, channel):
-        zone = 1
-        if int(channel) <= 201:
-            zone = 1
-        elif int(channel) > 201 and int(channel) <= 401:
-            zone = 2
-        elif int(channel) > 401 and int(channel) <= 601:
-            zone = 3
-        else:
-            zone = 4
-        return zone
-
+    # The main loop
     async def main(self):
         authkey = f"{config.get('DVR', 'username')}:{config.get('DVR', 'password')}"
         auth_bytes = authkey.encode('ascii')
@@ -197,7 +208,7 @@ class SecVisionJetson:
                                                             self.config.get('DVR', 'channels'))
                 for channel, frame in channel_frames:
                     # detect objects in the image
-                    await self.loop_and_detect(frame, trt_yolo, 0.5, vis, channel, session)
+                    await self.detect(frame, trt_yolo, 0.5, vis, channel, session)
                 end = time.time()
                 logging.info(
                     f" Network {8 / (end - start - timer):.2f}fps")
