@@ -32,6 +32,7 @@ Technologies used
    
    On DVR set basic auth for HTTP request
    
+    git clone https://github.com/Psynosaur/JetsonSecVision && cd JetsonSecVision
     pip3 install aiofiles aiohttp asyncio
 
    ### jetson inference stack 
