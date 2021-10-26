@@ -10,8 +10,8 @@ Technologies used
 ### Setup prior to use
 
 - detect.py
-  - **PLEASE DOWNLOAD THE MODELS FIRST** 
-  - https://github.com/dusty-nv/jetson-inference/blob/master/docs/building-repo-2.md#downloading-models
+  - **PLEASE BUILD THIS PROJECT FIRST** 
+  - https://github.com/dusty-nv/jetson-inference/blob/master/docs/building-repo-2.md
   - SSD-MOBILENET-V2 **OR** change model hardcoded in code
 - detect_yolo.py
   - **PLEASE BUILD THIS PROJECT FIRST**
