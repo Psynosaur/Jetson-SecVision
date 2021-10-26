@@ -17,7 +17,7 @@ import threading
 import time
 
 # the tensorrt_demos directory, please build this first
-sys.path.append('../tensorrt_demos/utils')
+sys.path.append('../../tensorrt_demos/utils')
 
 import pycuda.autoinit  # This is needed for initializing CUDA driver
 
@@ -167,8 +167,12 @@ class SecVisionJetson:
             data = xml_off
         async with session.put(url, data=data) as response:
             if response.status == 200:
-                logging.info(
-                    f" Zone {zone} triggered")
+                if high:
+                    logging.info(
+                        f" Zone {zone} triggered on")
+                else:
+                    logging.info(
+                        f" Zone {zone} triggered off")
 
     # Network detection
     async def detect(self, image, trt_yolo, conf_th, vis, channel, session):
@@ -223,7 +227,7 @@ class SecVisionJetson:
     
 if __name__ == '__main__':
     cwd = os.path.dirname(os.path.abspath(__file__))
-    settings = os.path.join(cwd, 'settings.ini')
+    settings = os.path.join("../", cwd, 'settings.ini')
     config = configparser.ConfigParser()
     config.read(settings)
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)

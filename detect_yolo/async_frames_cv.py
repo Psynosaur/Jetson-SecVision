@@ -6,6 +6,7 @@ import aiohttp
 import time
 import cv2
 import logging
+import datetime
 
 async def get_frames(session, ip, channels):
     channel_frames = []
@@ -23,6 +24,8 @@ async def get_frames(session, ip, channels):
                 # nparr = numpy.fromstring(img, numpy.uint8)
                 # img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
                 img_np = cv2.imdecode(numpy.frombuffer(img, numpy.uint8), -1)
+                # height, width, channels = img_np.shape
+                # logging.info(f"{width}x{height} {channels}")
                 # img_np = numpy.array(Image.open(io.BytesIO(img)))
                 channel_frames.append((f"{ch}01", img_np))
 
