@@ -42,8 +42,16 @@ Technologies used
    Takes approximately 1.1 seconds to do its thing for 8x2MP images, sometimes a little longer at 1.5s when writing files
    
    ### Tensort stack with yolov4, needs symlinks to tensorrt_demo project - supports terminal args
+   #### Setup environment
 
-    python3 detect_yolo/detect_yolo.py 
+    cd detect_yolo 
+    ln -s ${HOME}/tensorrt_demos/utils/ ./utils
+    ln -s ${HOME}/tensorrt_demos/plugins/ ./plugins
+    ln -s ${HOME}/tensorrt_demos/yolo/ ./yolo
+
+   #### Run script
+
+     python3 detect_yolo/detect_yolo.py -m yolov4-416
 
    Takes approximately 2.6 seconds round trip to do its thing for 8x2MP images and is very accurate
    Detection step takes 1.75s for a network fps of **~4.57FPS**.
@@ -54,18 +62,15 @@ Technologies used
 
    ##### Jetson-Inference
 
-    $ sudo ./install.sh
+    $ sudo detect_mobile/install.sh
     
-   ##### TensorRT-Yolov4-416 - symlinks : This assumes tensorrt_demos has been cloned in your home directory, change if needed
+   ##### TensorRT-Yolov4-416
     
-    cd detect_yolo 
-    ln -s ${HOME}/tensorrt_demos/utils/ ./utils
-    ln -s ${HOME}/tensorrt_demos/plugins/ ./plugins
-    ln -s ${HOME}/tensorrt_demos/yolo/ ./yolo
+    
 
    Installation
 
-    $ sudo ./install_yolo.sh
+    $ sudo detect_yolo/install_yolo.sh
 
 
    ### Check status of service jetson.utils using ssd-mobilenet-v2
@@ -86,19 +91,19 @@ Technologies used
 
    ### To uninstall the service
 
-    $ sudo ./uninstall.sh
+    $ sudo detect_mobile/uninstall.sh
 
    or
 
-    $ sudo ./uninstall_yolo.sh
+    $ sudo detect_yolo/uninstall_yolo.sh
 
 ### Developers
 
-    $ sudo ./refresh.sh
+    $ sudo detect_mobile/refresh.sh
  
   or
 
-    $ sudo ./refresh_yolo.sh
+    $ sudo detect_yolo/refresh_yolo.sh
 
 ### Expected output 
 
