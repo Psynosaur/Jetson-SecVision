@@ -8,7 +8,7 @@ import cv2
 import logging
 import datetime
 
-async def get_frames(session, ip, channels):
+async def get_frames(session, ip, channels, jpeg):
     channel_frames = []
 
     start = time.time()
@@ -23,7 +23,8 @@ async def get_frames(session, ip, channels):
                 img = await response.read()
                 # nparr = numpy.fromstring(img, numpy.uint8)
                 # img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-                img_np = cv2.imdecode(numpy.frombuffer(img, numpy.uint8), -1)
+                # img_np = cv2.imdecode(numpy.frombuffer(img, numpy.uint8), -1)
+                img_np = jpeg.decode(img, 1)
                 # height, width, channels = img_np.shape
                 # logging.info(f"{width}x{height} {channels}")
                 # img_np = numpy.array(Image.open(io.BytesIO(img)))
@@ -32,5 +33,5 @@ async def get_frames(session, ip, channels):
     coros = [one_frame(_) for _ in range(int(channels))]
     await asyncio.gather(*coros)
     end = time.time()
-    # logging.info(f"GET DATA - {end - start}")
+    logging.info(f" GET DATA - {end - start}")
     return channel_frames, end - start

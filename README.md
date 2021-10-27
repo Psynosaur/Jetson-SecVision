@@ -33,7 +33,7 @@ Technologies used
    On DVR set basic auth for HTTP request
    
     git clone https://github.com/Psynosaur/JetsonSecVision && cd JetsonSecVision
-    pip3 install aiofiles aiohttp asyncio
+    pip3 install aiofiles aiohttp asyncio colorlog
 
    ### jetson inference stack - supports terminal args
 
@@ -53,8 +53,8 @@ Technologies used
 
      python3 detect_yolo/detect_yolo.py -m yolov4-416
 
-   Takes approximately 2.6 seconds round trip to do its thing for 8x2MP images and is very accurate
-   Detection step takes 1.75s for a network fps of **~4.57FPS**.
+   Takes approximately 2.4 seconds round trip to do its thing for 8x2MP images and is very accurate
+   Detection step takes 1.68s for a network fps of **~4.57FPS**.
 
    ### Automatic / Continuous Operation
    
@@ -106,6 +106,8 @@ Technologies used
     $ sudo detect_yolo/refresh_yolo.sh
 
 ### Expected output 
+
+![Detection](./detect_yolo/img.jpg)
 
     Oct 26 20:36:26 jetson secvision_yolo[26856]: INFO: 501 Person found - Zone 3 start recording
     Oct 26 20:36:26 jetson secvision_yolo[26856]: INFO: Zone 3 triggered on

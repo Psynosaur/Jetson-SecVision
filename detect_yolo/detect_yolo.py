@@ -1,3 +1,4 @@
+import aiofiles
 import aiohttp
 import argparse
 import asyncio
@@ -9,12 +10,14 @@ import datetime
 import io
 import json
 import logging
+import numpy as np
 import os
 from pathlib import Path
 import pytz
 import sys
 import threading
 import time
+from turbojpeg import TurboJPEG
 
 # the tensorrt_demos directory, please build this first
 sys.path.append('../../tensorrt_demos/utils')
@@ -26,14 +29,25 @@ from display import open_window, set_display, show_fps
 from visualization import BBoxVisualization
 from yolo_with_plugins import TrtYOLO
 
+LOG_LEVEL = logging.INFO
+LOGFORMAT = "  %(log_color)s%(levelname)-8s%(reset)s | %(log_color)s%(message)s%(reset)s"
+from colorlog import ColoredFormatter
+
+# logging.basicConfig(filename='detections.log')
+logging.root.setLevel(LOG_LEVEL)
+formatter = ColoredFormatter(LOGFORMAT)
+stream = logging.StreamHandler()
+stream.setLevel(LOG_LEVEL)
+stream.setFormatter(formatter)
+log = logging.getLogger('pythonConfig')
+log.setLevel(LOG_LEVEL)
+log.addHandler(stream)
+
 
 def parse_args():
     """Parse input arguments."""
-    desc = ('Capture and display live camera video, while doing '
-            'real-time object detection with TensorRT optimized '
-            'YOLO model on Jetson')
+    desc = ('Detect persons on HTTP pictures from HikVision DVR')
     parser = argparse.ArgumentParser(description=desc)
-    # parser = add_camera_args(parser)
     parser.add_argument(
         '-c', '--category_num', type=int, default=80,
         help='number of object categories [80]')
@@ -56,22 +70,21 @@ if args.category_num <= 0:
 if not os.path.isfile('yolo/%s.trt' % args.model):
     raise SystemExit('ERROR: file (yolo/%s.trt) not found!' % args.model)
 
-# load the object detection network
-# net = jetson.inference.detectNet(opt.network, sys.argv, opt.threshold)
-cls_dict = get_cls_dict(args.category_num)
-vis = BBoxVisualization(cls_dict)
-trt_yolo = TrtYOLO(args.model, args.category_num, args.letter_box)
-
 # determine user home directory for saving detection frames
 home = str(Path.home())
 cwdpath = os.path.join(home, "Pictures/SecVision/")
 xml_on = "<IOPortData version=\"1.0\" xmlns=\"http://www.hikvision.com/ver20/XMLSchema\"><outputState>high</outputState></IOPortData>"
 xml_off = "<IOPortData version=\"1.0\" xmlns=\"http://www.hikvision.com/ver20/XMLSchema\"><outputState>low</outputState></IOPortData>"
 
+
 class SecVisionJetson:
     channel_frames = []
     channel_event = {}
     gc = []
+    jpeg = TurboJPEG()
+    cls_dict = get_cls_dict(args.category_num)
+    vis = BBoxVisualization(cls_dict)
+    trt_yolo = TrtYOLO(args.model, args.category_num, args.letter_box)
 
     def __init__(self, cfg) -> None:
         self.config = cfg
@@ -106,7 +119,7 @@ class SecVisionJetson:
                         if float(obj.channel_event[channel]) > 0:
                             elapsed = datetime.datetime.now() - datetime.datetime.fromtimestamp(
                                 obj.channel_event[channel])
-                            logging.info(
+                            logging.warning(
                                 f" {channel} Person found {elapsed.total_seconds()}s ago")
                             SecVisionJetson.log_metrics(ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal)
                             if elapsed > datetime.timedelta(seconds=30):
@@ -158,7 +171,7 @@ class SecVisionJetson:
 
     # Starts a recording for a zone when triggered.
     # TODO : Trigger per channel directly, would negate the surveillance center notification...
-    async def trigger_zone(self, session,  zone, high):
+    async def trigger_zone(self, session, zone, high):
         url = f"http://{self.config.get('DVR', 'ip')}/ISAPI/System/IO/outputs/{zone}/trigger"
         data = ""
         if high:
@@ -168,23 +181,19 @@ class SecVisionJetson:
         async with session.put(url, data=data) as response:
             if response.status == 200:
                 if high:
-                    logging.info(
+                    logging.warning(
                         f" Zone {zone} triggered on")
                 else:
-                    logging.info(
+                    logging.warning(
                         f" Zone {zone} triggered off")
 
     # Network detection
     async def detect(self, image, trt_yolo, conf_th, vis, channel, session):
         img = image
         boxes, confs, clss = trt_yolo.detect(img, conf_th)
-        img = vis.draw_bboxes(img, boxes, confs, clss)
         idx = 0
         zone = 0
         for cococlass in clss:
-            # print(f"{channel} : {cococlass}")
-            # person classID in COCO is 1
-            # confs
             if cococlass == 0 and confs[idx] >= 0.85:
                 now = datetime.datetime.now()
                 zone = self.determine_zone(channel)
@@ -202,8 +211,17 @@ class SecVisionJetson:
                 except FileExistsError:
                     # directory already exists
                     pass
-                # fast file save...
-                cv2.imwrite(wd + f"{now.strftime('%H_%M_%S.%f')}_person_frame.jpg", img)
+                # Save data
+                drawing = False
+                if drawing:
+                    img = vis.draw_bboxes(img, boxes, confs, clss)
+                else:
+                    pass
+                np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_boxes", boxes)
+                np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_confs", confs)
+                np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_clss", clss)
+                cv2.imwrite(wd + f"{now.strftime('%H_%M_%S.%f')}_person_frame.jpg", img,
+                            [int(cv2.IMWRITE_JPEG_QUALITY), 90])
             idx += 1
 
     # The main loop
@@ -212,19 +230,19 @@ class SecVisionJetson:
             while True:
                 start = time.time()
                 channel_frames, timer = await af.get_frames(session, self.config.get('DVR', 'ip'),
-                                                            self.config.get('DVR', 'channels'))
+                                                            self.config.get('DVR', 'channels'), self.jpeg)
                 for channel, frame in channel_frames:
                     # detect objects in the image
-                    await self.detect(frame, trt_yolo, 0.5, vis, channel, session)
+                    await self.detect(frame, self.trt_yolo, 0.5, self.vis, channel, session)
                 end = time.time()
-                logging.info(
-                    f" Network {8 / (end - start - timer):.2f}fps")
+                # logging.info(
+                #     f" Network {8 / (end - start - timer):.2f}fps")
                 for channel in self.gc:
                     await self.trigger_zone(session, self.determine_zone(channel), False)
                 self.gc = []
-                # logging.info(f"Inference loop - {end - start - timer} - {8/(end - start - timer)}fps")
+                logging.info(f" Inference loop - {(end - start - timer):.2f} - {8 / (end - start - timer):.2f}fps")
 
-    
+
 if __name__ == '__main__':
     cwd = os.path.dirname(os.path.abspath(__file__))
     settings = os.path.join("../", cwd, 'settings.ini')
