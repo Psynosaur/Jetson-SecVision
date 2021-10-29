@@ -2,7 +2,7 @@ import aiofiles
 import aiohttp
 import argparse
 import asyncio
-import async_frames_cv as af
+import async_frames_cv_v2 as af
 import base64
 import configparser
 import cv2
@@ -147,6 +147,7 @@ class SecVisionJetson:
         pll_temp = os.popen("cat /sys/devices/virtual/thermal/thermal_zone3/temp").read()
         pmic_temp = os.popen("cat /sys/devices/virtual/thermal/thermal_zone4/temp").read()
         thermal = os.popen("cat /sys/devices/virtual/thermal/thermal_zone5/temp").read()
+        # input_voltage = os.popen("cat /sys/bus/i2c/drivers/ina3221x/6-0040/iio\:device0/in_voltage0_input").read()
         # Fan PWM reading
         pwm = os.popen("cat /sys/devices/pwm-fan/hwmon/hwmon1/cur_pwm").read()
         rpm = int(pwm) * (2000 / 256)
@@ -231,6 +232,7 @@ class SecVisionJetson:
                 start = time.time()
                 channel_frames, timer = await af.get_frames(session, self.config.get('DVR', 'ip'),
                                                             self.config.get('DVR', 'channels'), self.jpeg)
+
                 for channel, frame in channel_frames:
                     # detect objects in the image
                     await self.detect(frame, self.trt_yolo, 0.5, self.vis, channel, session)
@@ -246,6 +248,7 @@ class SecVisionJetson:
 if __name__ == '__main__':
     cwd = os.path.dirname(os.path.abspath(__file__))
     settings = os.path.join("../", cwd, 'settings.ini')
+    # print(settings)
     config = configparser.ConfigParser()
     config.read(settings)
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)

@@ -8,17 +8,16 @@ import cv2
 import logging
 import datetime
 
+
 async def get_frames(session, ip, channels, jpeg):
     channel_frames = []
-
     start = time.time()
+
     async def one_frame(ch):
         ch += 1
-        # lower resolution version of the images
-        # request_url_low =  f"http://{ip}/ISAPI/Streaming/channels/{ch}01/picture"
-        # request_url_720p = f"http://{ip}/ISAPI/Streaming/channels/{ch}01/picture?videoResolutionWidth=1280&videoResolutionHeight=720&snapShotImageType=JPEG"
-        request_url_1080p = f"http://{ip}/ISAPI/Streaming/channels/{ch}02/picture?videoResolutionWidth=1920&videoResolutionHeight=1080&snapShotImageType=JPEG"
-        async with session.get(request_url_1080p) as response:
+        request_url = f"http://{ip}/ISAPI/Streaming/channels/{ch}02/picture?videoResolutionWidth=1920" \
+                      f"&videoResolutionHeight=1080&snapShotImageType=JPEG "
+        async with session.get(request_url) as response:
             if response.status == 200:
                 img = await response.read()
                 # nparr = numpy.fromstring(img, numpy.uint8)

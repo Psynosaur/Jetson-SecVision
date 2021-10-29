@@ -54,7 +54,17 @@ Technologies used
      python3 detect_yolo/detect_yolo.py -m yolov4-416
 
    Takes approximately 2.4 seconds round trip to do its thing for 8x2MP images and is very accurate
-   Detection step takes 1.68s for a network fps of **~4.57FPS**.
+   Detection step takes 1.68s for a network fps of **~4.57FPS**. 
+   
+   ### When the jetson is overclocked this is at around ~5.7FPS at 1.15GHz GPU
+    
+   This routine is not very resource intensive as a video feed would be, nor would it be as unstable at these speeds.
+
+   ![jtop](./detect_yolo/jtop.png)
+
+   here it is doing its thing
+
+   ![jtop](./detect_yolo/nano.png)
 
    ### Automatic / Continuous Operation
    
