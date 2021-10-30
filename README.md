@@ -66,6 +66,10 @@ Technologies used
 
    ![jtop](./detect_yolo/nano.png)
 
+   Zone and channel AlarmIO wiring
+
+   ![wiring](./detect_yolo/AlarmIO.jpg)
+
    ### Automatic / Continuous Operation
    
    #### Run install scripts

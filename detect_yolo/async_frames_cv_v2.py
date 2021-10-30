@@ -15,7 +15,7 @@ async def get_frames(session, ip, channels, jpeg):
                     img = await response.read()
                     # img_np = cv2.imdecode(numpy.frombuffer(img, numpy.uint8), -1)
                     img_np = jpeg.decode(img, 1)
-                    return f"{ch}01", img, img_np
+                    return f"{ch}01", img_np
         except asyncio.TimeoutError:
             logging.warning(' Request timedout !')
             pass

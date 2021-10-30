@@ -13,6 +13,7 @@ import logging
 import numpy as np
 import os
 from pathlib import Path
+from PIL import Image
 import pytz
 import sys
 import threading
@@ -76,6 +77,16 @@ cwdpath = os.path.join(home, "Pictures/SecVision/")
 xml_on = "<IOPortData version=\"1.0\" xmlns=\"http://www.hikvision.com/ver20/XMLSchema\"><outputState>high</outputState></IOPortData>"
 xml_off = "<IOPortData version=\"1.0\" xmlns=\"http://www.hikvision.com/ver20/XMLSchema\"><outputState>low</outputState></IOPortData>"
 
+channel_names = {
+    '101': 'Front lawn',
+    '201': 'Front door',
+    '301': 'Driveway',
+    '401': 'Side gate',
+    '501': 'Courtyard',
+    '601': 'Garage gate',
+    '701': 'Back Lawn',
+    '801': 'Pool'
+}
 
 class SecVisionJetson:
     channel_frames = []
@@ -127,7 +138,7 @@ class SecVisionJetson:
                             elapsed = datetime.datetime.now() - datetime.datetime.fromtimestamp(
                                 obj.class_channel_event[channel])
                             logging.warning(
-                                f" {channel} Person found {elapsed.total_seconds()}s ago")
+                                f" {channel_names[channel]} Person found {elapsed.total_seconds()}s ago")
 
                             if elapsed > datetime.timedelta(seconds=15):
                                 zone = obj.determine_zone(channel)
@@ -224,7 +235,7 @@ class SecVisionJetson:
                         f" Zone {zone} triggered off")
 
     # Network detection
-    async def detect(self, image, bytes, trt_yolo, conf_th, vis, channel, session):
+    async def detect(self, image,trt_yolo, conf_th, vis, channel, session):
         img = image
         boxes, confs, clss = trt_yolo.detect(img, conf_th)
         idx = 0
@@ -234,25 +245,25 @@ class SecVisionJetson:
             if cococlass == 0 and confs[idx] >= 0.85:
                 now = datetime.datetime.now()
                 zone = self.determine_zone(channel)
-                msg = f" {channel} Person found in zone {zone} - recording"
+                msg = f" {channel_names[channel]} person found in zone {zone} - recording"
                 if zone == 1:
                     if len(self.zone1) == 0:
-                        msg = f" {channel} Person found in zone {zone} - starting recording"
+                        msg = f" {channel_names[channel]} person found in zone {zone} - starting recording"
                         tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
                     self.zone1[channel] = channel
                 elif zone == 2:
                     if len(self.zone2) == 0:
-                        msg = f" {channel} Person found in zone {zone} - starting recording"
+                        msg = f" {channel_names[channel]} person found in zone {zone} - starting recording"
                         tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
                     self.zone2[channel] = channel
                 elif zone == 3:
                     if len(self.zone3) == 0:
-                        msg = f" {channel} Person found in zone {zone} - starting recording"
+                        msg = f" {channel_names[channel]} person found in zone {zone} - starting recording"
                         tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
                     self.zone3[channel] = channel
                 else:
                     if len(self.zone4) == 0:
-                        msg = f" {channel} Person found in zone {zone} - starting recording"
+                        msg = f" {channel_names[channel]} person found in zone {zone} - starting recording"
                         tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
                     self.zone4[channel] = channel
 
@@ -298,9 +309,9 @@ class SecVisionJetson:
                     channel_frames, timer = await af.get_frames(session, self.config.get('DVR', 'ip'),
                                                                 self.config.get('DVR', 'channels'), self.jpeg)
 
-                    for channel, imgbyte, frame in channel_frames:
+                    for channel, frame in channel_frames:
                         # detect objects in the image
-                        await self.detect(frame, imgbyte, self.trt_yolo, 0.5, self.vis, channel, session)
+                        await self.detect(frame, self.trt_yolo, 0.5, self.vis, channel, session)
                     end = time.time()
                     # logging.info(
                     #     f" Network {8 / (end - start - timer):.2f}fps")
