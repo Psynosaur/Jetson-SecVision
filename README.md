@@ -56,7 +56,7 @@ Technologies used
    Takes approximately 2.4 seconds round trip to do its thing for 8x2MP images and is very accurate
    Detection step takes 1.68s for a network fps of **~4.57FPS**. 
    
-   ### When the jetson is overclocked this is at around ~5.7FPS at 1.15GHz GPU
+   ### When the jetson is overclocked this is at around ~5.7FPS at 1.15GHz GPU and consumes ~14.5W at the wall.
     
    This routine is not very resource intensive as a video feed would be, nor would it be as unstable at these speeds.
 

@@ -79,8 +79,12 @@ xml_off = "<IOPortData version=\"1.0\" xmlns=\"http://www.hikvision.com/ver20/XM
 
 class SecVisionJetson:
     channel_frames = []
-    channel_event = {}
-    gc = []
+    class_channel_event = {}
+    class_garbage_collector = []
+    zone1 = {}
+    zone2 = {}
+    zone3 = {}
+    zone4 = {}
     jpeg = TurboJPEG()
     cls_dict = get_cls_dict(args.category_num)
     vis = BBoxVisualization(cls_dict)
@@ -108,25 +112,56 @@ class SecVisionJetson:
     @staticmethod
     def recorder_thread(event: threading.Event, obj, time: float) -> None:
         while not event.isSet():
-            garbage_collector = []
+            thread_zone_garbage_collector = []
+            thread_channel_done_event = []
+
             event_is_set = event.wait(time)
             if event_is_set:
                 logging.debug('processing event')
             else:
                 ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal = SecVisionJetson.jetson_metrics()
-                if len(obj.channel_event) > 0:
-                    for channel in obj.channel_event:
-                        if float(obj.channel_event[channel]) > 0:
+                if len(obj.class_channel_event) > 0:
+                    SecVisionJetson.log_metrics(ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal)
+                    for channel in obj.class_channel_event:
+                        if float(obj.class_channel_event[channel]) > 0:
                             elapsed = datetime.datetime.now() - datetime.datetime.fromtimestamp(
-                                obj.channel_event[channel])
+                                obj.class_channel_event[channel])
                             logging.warning(
                                 f" {channel} Person found {elapsed.total_seconds()}s ago")
-                            SecVisionJetson.log_metrics(ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal)
-                            if elapsed > datetime.timedelta(seconds=30):
-                                garbage_collector.append(channel)
-                    for channel in garbage_collector:
-                        obj.channel_event.pop(channel, None)
-                        obj.gc.append(channel)
+
+                            if elapsed > datetime.timedelta(seconds=15):
+                                zone = obj.determine_zone(channel)
+                                if zone == 1:
+                                    if len(obj.zone1) == 1:
+                                        thread_zone_garbage_collector.append(channel)
+                                    else:
+                                        thread_channel_done_event.append(channel)
+                                    obj.zone1.pop(channel, None)
+                                elif zone == 2:
+                                    if len(obj.zone2) == 1:
+                                        thread_zone_garbage_collector.append(channel)
+                                    else:
+                                        thread_channel_done_event.append(channel)
+                                    obj.zone2.pop(channel, None)
+                                elif zone == 3:
+                                    if len(obj.zone3) == 1:
+                                        thread_zone_garbage_collector.append(channel)
+                                    else:
+                                        thread_channel_done_event.append(channel)
+                                    obj.zone3.pop(channel, None)
+                                else:
+                                    if len(obj.zone4) == 1:
+                                        thread_zone_garbage_collector.append(channel)
+                                    else:
+                                        thread_channel_done_event.append(channel)
+                                    obj.zone4.pop(channel, None)
+
+                    for channel in thread_channel_done_event:
+                        obj.class_channel_event.pop(channel, None)
+
+                    for channel in thread_zone_garbage_collector:
+                        obj.class_channel_event.pop(channel, None)
+                        obj.class_garbage_collector.append(channel)
                 else:
                     SecVisionJetson.log_metrics(ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal)
 
@@ -189,22 +224,42 @@ class SecVisionJetson:
                         f" Zone {zone} triggered off")
 
     # Network detection
-    async def detect(self, image, trt_yolo, conf_th, vis, channel, session):
+    async def detect(self, image, bytes, trt_yolo, conf_th, vis, channel, session):
         img = image
         boxes, confs, clss = trt_yolo.detect(img, conf_th)
         idx = 0
         zone = 0
+        tasks = []
         for cococlass in clss:
             if cococlass == 0 and confs[idx] >= 0.85:
                 now = datetime.datetime.now()
                 zone = self.determine_zone(channel)
-                logging.info(
-                    f" {channel} Person found - Zone {zone} start recording")
-                await self.trigger_zone(session, zone, True)
-                # if self.channel_event[channel]:
+                msg = f" {channel} Person found in zone {zone} - recording"
+                if zone == 1:
+                    if len(self.zone1) == 0:
+                        msg = f" {channel} Person found in zone {zone} - starting recording"
+                        tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
+                    self.zone1[channel] = channel
+                elif zone == 2:
+                    if len(self.zone2) == 0:
+                        msg = f" {channel} Person found in zone {zone} - starting recording"
+                        tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
+                    self.zone2[channel] = channel
+                elif zone == 3:
+                    if len(self.zone3) == 0:
+                        msg = f" {channel} Person found in zone {zone} - starting recording"
+                        tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
+                    self.zone3[channel] = channel
+                else:
+                    if len(self.zone4) == 0:
+                        msg = f" {channel} Person found in zone {zone} - starting recording"
+                        tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
+                    self.zone4[channel] = channel
+
+                logging.warning(msg)
                 # Over write latest human timestamp on a given channel
-                self.channel_event[channel] = datetime.datetime.timestamp(datetime.datetime.now())
-                # do request for DVR recording stuff here 
+                self.class_channel_event[channel] = datetime.datetime.timestamp(datetime.datetime.now())
+                # Image saving
                 imgdir = "frames/" + now.strftime('%Y-%m-%d') + "/" + f"{channel}" + "/"
                 wd = os.path.join(cwdpath, imgdir)
                 try:
@@ -222,27 +277,40 @@ class SecVisionJetson:
                 np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_confs", confs)
                 np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_clss", clss)
                 cv2.imwrite(wd + f"{now.strftime('%H_%M_%S.%f')}_person_frame.jpg", img,
-                            [int(cv2.IMWRITE_JPEG_QUALITY), 90])
+                            [int(cv2.IMWRITE_JPEG_QUALITY), 83])
+                # image_file = Image.open(io.BytesIO(bytes))
+                # image_file.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_frame.jpg")
+                break
             idx += 1
+        await asyncio.gather(*tasks)
+
+    async def cleanstart(self, session, zone):
+        await self.trigger_zone(session, zone, False)
 
     # The main loop
     async def main(self):
         async with aiohttp.ClientSession(headers=self.session_auth()) as session:
+            for i in range(1,5):
+                await self.cleanstart(session, i)
             while True:
-                start = time.time()
-                channel_frames, timer = await af.get_frames(session, self.config.get('DVR', 'ip'),
-                                                            self.config.get('DVR', 'channels'), self.jpeg)
+                try:
+                    start = time.time()
+                    channel_frames, timer = await af.get_frames(session, self.config.get('DVR', 'ip'),
+                                                                self.config.get('DVR', 'channels'), self.jpeg)
 
-                for channel, frame in channel_frames:
-                    # detect objects in the image
-                    await self.detect(frame, self.trt_yolo, 0.5, self.vis, channel, session)
-                end = time.time()
-                # logging.info(
-                #     f" Network {8 / (end - start - timer):.2f}fps")
-                for channel in self.gc:
-                    await self.trigger_zone(session, self.determine_zone(channel), False)
-                self.gc = []
-                logging.info(f" Inference loop - {(end - start - timer):.2f} - {8 / (end - start - timer):.2f}fps")
+                    for channel, imgbyte, frame in channel_frames:
+                        # detect objects in the image
+                        await self.detect(frame, imgbyte, self.trt_yolo, 0.5, self.vis, channel, session)
+                    end = time.time()
+                    # logging.info(
+                    #     f" Network {8 / (end - start - timer):.2f}fps")
+                    for channel in self.class_garbage_collector:
+                        await self.trigger_zone(session, self.determine_zone(channel), False)
+                    self.class_garbage_collector = []
+                    logging.info(f" Inference loop - {(end - start - timer):.2f}s @ {8 / (end - start - timer):.2f}fps")
+                except aiohttp.client_exceptions.ClientConnectorError:
+                    logging.info(f" ClientConnectorError")
+                    pass
 
 
 if __name__ == '__main__':

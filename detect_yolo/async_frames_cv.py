@@ -1,12 +1,6 @@
 import asyncio
-import io
-import numpy
-from PIL import Image
-import aiohttp
-import time
-import cv2
 import logging
-import datetime
+import time
 
 
 async def get_frames(session, ip, channels, jpeg):
