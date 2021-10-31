@@ -27,6 +27,6 @@ async def get_frames(session, ip, channels, jpeg):
 
     channel_frames = await asyncio.gather(*tasks)
     end = time.time()
-    logging.info(f" GET DATA - {end - start:.2f}s")
+    # logging.info(f" GET DATA - {end - start:.2f}s")
     return channel_frames, end - start
 

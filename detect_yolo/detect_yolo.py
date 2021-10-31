@@ -88,14 +88,27 @@ channel_names = {
     '801': 'Pool'
 }
 
+thresholds = {
+    '101': 0.78,
+    '201': 0.8,
+    '301': 0.8,
+    '401': 0.8,
+    '501': 0.92,
+    '601': 0.92,
+    '701': 0.78,
+    '801': 0.8
+}
+
 class SecVisionJetson:
     channel_frames = []
+    cnt = 0
     class_channel_event = {}
     class_garbage_collector = []
     zone1 = {}
     zone2 = {}
     zone3 = {}
     zone4 = {}
+    network_speed = []
     jpeg = TurboJPEG()
     cls_dict = get_cls_dict(args.category_num)
     vis = BBoxVisualization(cls_dict)
@@ -130,9 +143,14 @@ class SecVisionJetson:
             if event_is_set:
                 logging.debug('processing event')
             else:
-                ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal = SecVisionJetson.jetson_metrics()
+                obj.cnt += 1
+                # Give us stats every minute or so . . .
+                if obj.cnt == 12:
+                    obj.cnt = 0
+                    ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal = SecVisionJetson.jetson_metrics()
+                    net_speed = sum(obj.network_speed) / len(obj.network_speed)
+                    SecVisionJetson.log_metrics(ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal, net_speed)
                 if len(obj.class_channel_event) > 0:
-                    SecVisionJetson.log_metrics(ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal)
                     for channel in obj.class_channel_event:
                         if float(obj.class_channel_event[channel]) > 0:
                             elapsed = datetime.datetime.now() - datetime.datetime.fromtimestamp(
@@ -173,16 +191,16 @@ class SecVisionJetson:
                     for channel in thread_zone_garbage_collector:
                         obj.class_channel_event.pop(channel, None)
                         obj.class_garbage_collector.append(channel)
-                else:
-                    SecVisionJetson.log_metrics(ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal)
 
     @staticmethod
-    def log_metrics(ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal):
+    def log_metrics(ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal, net):
         logging.info(
             f" CPU {int(cpu_temp) / 1000:.2f}°C / GPU {int(gpu_temp) / 1000:.2f}°C /"
             f" PLL {int(pll_temp) / 1000:.2f}°C")
         logging.info(
             f" AO {int(ao_temp) / 1000:.2f}°C / THERM {int(thermal) / 1000:.2f}°C / FAN {round(rpm, 0)}RPM ")
+        logging.info(
+            f" NETWORK {net:.2f} FPS ")
 
     @staticmethod
     def jetson_metrics():
@@ -196,7 +214,7 @@ class SecVisionJetson:
         # input_voltage = os.popen("cat /sys/bus/i2c/drivers/ina3221x/6-0040/iio\:device0/in_voltage0_input").read()
         # Fan PWM reading
         pwm = os.popen("cat /sys/devices/pwm-fan/hwmon/hwmon1/cur_pwm").read()
-        rpm = int(pwm) * (2000 / 256)
+        rpm = int(pwm) * (5000 / 256)
         return ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal
 
     # DVR has 4 Alarm Output ports, they are electrically connected like so :
@@ -242,31 +260,10 @@ class SecVisionJetson:
         zone = 0
         tasks = []
         for cococlass in clss:
-            if cococlass == 0 and confs[idx] >= 0.85:
+            if cococlass == 0 and confs[idx] >= thresholds[channel]:
                 now = datetime.datetime.now()
                 zone = self.determine_zone(channel)
-                msg = f" {channel_names[channel]} person found in zone {zone} - recording"
-                if zone == 1:
-                    if len(self.zone1) == 0:
-                        msg = f" {channel_names[channel]} person found in zone {zone} - starting recording"
-                        tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
-                    self.zone1[channel] = channel
-                elif zone == 2:
-                    if len(self.zone2) == 0:
-                        msg = f" {channel_names[channel]} person found in zone {zone} - starting recording"
-                        tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
-                    self.zone2[channel] = channel
-                elif zone == 3:
-                    if len(self.zone3) == 0:
-                        msg = f" {channel_names[channel]} person found in zone {zone} - starting recording"
-                        tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
-                    self.zone3[channel] = channel
-                else:
-                    if len(self.zone4) == 0:
-                        msg = f" {channel_names[channel]} person found in zone {zone} - starting recording"
-                        tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
-                    self.zone4[channel] = channel
-
+                msg = await self.zone_activator(channel, session, tasks, zone)
                 logging.warning(msg)
                 # Over write latest human timestamp on a given channel
                 self.class_channel_event[channel] = datetime.datetime.timestamp(datetime.datetime.now())
@@ -295,6 +292,30 @@ class SecVisionJetson:
             idx += 1
         await asyncio.gather(*tasks)
 
+    async def zone_activator(self, channel, session, tasks, zone):
+        msg = f" {channel_names[channel]} person found in zone {zone} - recording"
+        if zone == 1:
+            if len(self.zone1) == 0:
+                msg = f" {channel_names[channel]} person found in zone {zone} - start recording"
+                tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
+            self.zone1[channel] = channel
+        elif zone == 2:
+            if len(self.zone2) == 0:
+                msg = f" {channel_names[channel]} person found in zone {zone} - start recording"
+                tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
+            self.zone2[channel] = channel
+        elif zone == 3:
+            if len(self.zone3) == 0:
+                msg = f" {channel_names[channel]} person found in zone {zone} - start recording"
+                tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
+            self.zone3[channel] = channel
+        else:
+            if len(self.zone4) == 0:
+                msg = f" {channel_names[channel]} person found in zone {zone} - start recording"
+                tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
+            self.zone4[channel] = channel
+        return msg
+
     async def cleanstart(self, session, zone):
         await self.trigger_zone(session, zone, False)
 
@@ -313,12 +334,17 @@ class SecVisionJetson:
                         # detect objects in the image
                         await self.detect(frame, self.trt_yolo, 0.5, self.vis, channel, session)
                     end = time.time()
-                    # logging.info(
-                    #     f" Network {8 / (end - start - timer):.2f}fps")
+
                     for channel in self.class_garbage_collector:
                         await self.trigger_zone(session, self.determine_zone(channel), False)
                     self.class_garbage_collector = []
-                    logging.info(f" Inference loop - {(end - start - timer):.2f}s @ {8 / (end - start - timer):.2f}fps")
+                    self.network_speed.append(8 / (end - start - timer))
+                    # keeps the network average array nice and small
+                    if len(self.network_speed) > 128:
+                        for i in range(0, 65):
+                            self.network_speed.pop(0)
+
+                    # logging.info(f" Inference loop - {(end - start - timer):.2f}s @ {8 / (end - start - timer):.2f}fps")
                 except aiohttp.client_exceptions.ClientConnectorError:
                     logging.info(f" ClientConnectorError")
                     pass
