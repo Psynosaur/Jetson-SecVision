@@ -90,8 +90,8 @@ channel_names = {
 
 thresholds = {
     '101': 0.78,
-    '201': 0.8,
-    '301': 0.8,
+    '201': 0.78,
+    '301': 0.78,
     '401': 0.8,
     '501': 0.92,
     '601': 0.92,
@@ -263,7 +263,7 @@ class SecVisionJetson:
             if cococlass == 0 and confs[idx] >= thresholds[channel]:
                 now = datetime.datetime.now()
                 zone = self.determine_zone(channel)
-                msg = await self.zone_activator(channel, session, tasks, zone)
+                msg = await self.zone_activator(channel, session, tasks, zone, confs[idx])
                 logging.warning(msg)
                 # Over write latest human timestamp on a given channel
                 self.class_channel_event[channel] = datetime.datetime.timestamp(datetime.datetime.now())
@@ -292,26 +292,26 @@ class SecVisionJetson:
             idx += 1
         await asyncio.gather(*tasks)
 
-    async def zone_activator(self, channel, session, tasks, zone):
-        msg = f" {channel_names[channel]} person found in zone {zone} - recording"
+    async def zone_activator(self, channel, session, tasks, zone, confidence):
+        msg = f" {channel_names[channel]} - {confidence:.2f} -  person found in zone {zone} - recording"
         if zone == 1:
             if len(self.zone1) == 0:
-                msg = f" {channel_names[channel]} person found in zone {zone} - start recording"
+                msg = f" {channel_names[channel]} - {confidence:.2f} - person found in zone {zone} - start recording"
                 tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
             self.zone1[channel] = channel
         elif zone == 2:
             if len(self.zone2) == 0:
-                msg = f" {channel_names[channel]} person found in zone {zone} - start recording"
+                msg = f" {channel_names[channel]} - {confidence:.2f} - person found in zone {zone} - start recording"
                 tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
             self.zone2[channel] = channel
         elif zone == 3:
             if len(self.zone3) == 0:
-                msg = f" {channel_names[channel]} person found in zone {zone} - start recording"
+                msg = f" {channel_names[channel]} - {confidence:.2f} - person found in zone {zone} - start recording"
                 tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
             self.zone3[channel] = channel
         else:
             if len(self.zone4) == 0:
-                msg = f" {channel_names[channel]} person found in zone {zone} - start recording"
+                msg = f" {channel_names[channel]} - {confidence:.2f} - person found in zone {zone} - start recording"
                 tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
             self.zone4[channel] = channel
         return msg
