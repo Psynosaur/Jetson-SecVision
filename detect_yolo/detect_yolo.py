@@ -95,8 +95,19 @@ thresholds = {
     '401': 0.8,
     '501': 0.92,
     '601': 0.92,
-    '701': 0.78,
+    '701': 0.87,
     '801': 0.8
+}
+
+draw = {
+    '101': False,
+    '201': False,
+    '301': False,
+    '401': False,
+    '501': False,
+    '601': False,
+    '701': False,
+    '801': False
 }
 
 class SecVisionJetson:
@@ -276,7 +287,7 @@ class SecVisionJetson:
                     # directory already exists
                     pass
                 # Save data
-                drawing = False
+                drawing = draw[channel]
                 if drawing:
                     img = vis.draw_bboxes(img, boxes, confs, clss)
                 else:

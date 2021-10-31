@@ -2,17 +2,12 @@
 
 Technologies used
   - Jetson Nano
- - Jetson Inference - Detectnet
- - TensorRT - Yolov4-416  
- - Networks
- - HikVision DVR
+  - TensorRT 
+  - Darknet - Yolov4-416
+  - HikVision DVR DS-7208HUHI-K2
 
 ### Setup prior to use
 
-- detect.py
-  - **PLEASE BUILD THIS PROJECT FIRST** 
-  - https://github.com/dusty-nv/jetson-inference/blob/master/docs/building-repo-2.md
-  - SSD-MOBILENET-V2 **OR** change model hardcoded in code
 - detect_yolo.py
   - **PLEASE BUILD THIS PROJECT FIRST**
   - https://github.com/jkjung-avt/tensorrt_demos
@@ -35,13 +30,7 @@ Technologies used
     git clone https://github.com/Psynosaur/JetsonSecVision && cd JetsonSecVision
     pip3 install aiofiles aiohttp asyncio colorlog
 
-   ### jetson inference stack - supports terminal args
-
-    python3 detect_mobile/detect.py
-
-   Takes approximately 1.1 seconds to do its thing for 8x2MP images, sometimes a little longer at 1.5s when writing files
-   
-   ### Tensort stack with yolov4, needs symlinks to tensorrt_demo project - supports terminal args
+   ### TensorRT needs symlinks to tensorrt_demo project
    #### Setup environment
 
     cd detect_yolo 
@@ -49,7 +38,7 @@ Technologies used
     ln -s ${HOME}/tensorrt_demos/plugins/ ./plugins
     ln -s ${HOME}/tensorrt_demos/yolo/ ./yolo
 
-   #### Run script
+   #### Run script with model of your choice build from TensorRT demos
 
      python3 detect_yolo/detect_yolo.py -m yolov4-416
 
@@ -72,50 +61,23 @@ Technologies used
 
    ### Automatic / Continuous Operation
    
-   #### Run install scripts
-
-   ##### Jetson-Inference
-
-    $ sudo detect_mobile/install.sh
-    
-   ##### TensorRT-Yolov4-416
-    
-    
-
-   Installation
+   ### Installation
 
     $ sudo detect_yolo/install_yolo.sh
 
-
-   ### Check status of service jetson.utils using ssd-mobilenet-v2
-
-    $ sudo service detect status
-
-   or yolov4-416 with openCV
+   ### Check status of service
 
     $ sudo service detect_yolo status
      
    ### To stop the service, simply run:
 
-    $ sudo service detect stop
-
-   or
-
     $ sudo service detect_yolo stop
 
    ### To uninstall the service
 
-    $ sudo detect_mobile/uninstall.sh
-
-   or
-
     $ sudo detect_yolo/uninstall_yolo.sh
 
 ### Developers
-
-    $ sudo detect_mobile/refresh.sh
- 
-  or
 
     $ sudo detect_yolo/refresh_yolo.sh
 
