@@ -1,4 +1,4 @@
-#### SecVision
+## NVIDIA Jetson - SecVision
 
 Technologies used
   - Jetson Nano
@@ -6,9 +6,8 @@ Technologies used
   - Darknet - Yolov4-416
   - HikVision DVR DS-7208HUHI-K2
 
-### Setup prior to use
+### Prerequisites 
 
-- detect_yolo.py
   - **PLEASE BUILD THIS PROJECT FIRST**
   - https://github.com/jkjung-avt/tensorrt_demos
   - Environment is ready when Demo #5 runs with yolov4-416 model
@@ -24,6 +23,12 @@ Technologies used
  ### Usage
 
    Setup settings.ini
+    
+    [DVR]
+    username = dummy => user for DVR login
+    password = SuchPass => password for DVR login
+    channels = 8 => channels on DVR
+    ip = 0.0.0.0 => IP address of DVR on local network
    
    On DVR set basic auth for HTTP request
    
@@ -55,7 +60,7 @@ Technologies used
 
    ![jtop](./detect_yolo/nano.png)
 
-   Zone and channel AlarmIO wiring
+   Channel and zone AlarmIO wiring
 
    ![wiring](./detect_yolo/AlarmIO.jpg)
 
@@ -120,3 +125,11 @@ Technologies used
     Oct 26 20:36:57 jetson secvision_yolo[26856]: INFO: Network 4.70fps
     Oct 26 20:36:57 jetson secvision_yolo[26856]: INFO: Zone 3 triggered off
     
+
+## To Do 
+
+  - [ ] Add database for stats
+  - [ ] Add web api
+  - [ ] Add dashboard
+  - [ ] Refactor where possible
+  - [ ] Make it not use AlarmIO to trigger events (zoneless operation)

@@ -20,8 +20,12 @@ import threading
 import time
 from turbojpeg import TurboJPEG
 
+# determine user home directory
+home = str(Path.home())
+
 # the tensorrt_demos directory, please build this first
-sys.path.append('../../tensorrt_demos/utils')
+tensorRT = os.path.join(home, "tensorrt_demos/utils")
+sys.path.append(tensorRT)
 
 import pycuda.autoinit  # This is needed for initializing CUDA driver
 
@@ -71,8 +75,7 @@ if args.category_num <= 0:
 if not os.path.isfile('yolo/%s.trt' % args.model):
     raise SystemExit('ERROR: file (yolo/%s.trt) not found!' % args.model)
 
-# determine user home directory for saving detection frames
-home = str(Path.home())
+
 cwdpath = os.path.join(home, "Pictures/SecVision/")
 xml_on = "<IOPortData version=\"1.0\" xmlns=\"http://www.hikvision.com/ver20/XMLSchema\"><outputState>high</outputState></IOPortData>"
 xml_off = "<IOPortData version=\"1.0\" xmlns=\"http://www.hikvision.com/ver20/XMLSchema\"><outputState>low</outputState></IOPortData>"
@@ -95,7 +98,7 @@ thresholds = {
     '401': 0.8,
     '501': 0.92,
     '601': 0.92,
-    '701': 0.87,
+    '701': 0.92,
     '801': 0.8
 }
 
@@ -270,11 +273,16 @@ class SecVisionJetson:
         idx = 0
         zone = 0
         tasks = []
+        persons = 0
+        # count persons
+        for cococlass in clss:
+            if cococlass == 0:
+                persons += 1
         for cococlass in clss:
             if cococlass == 0 and confs[idx] >= thresholds[channel]:
                 now = datetime.datetime.now()
                 zone = self.determine_zone(channel)
-                msg = await self.zone_activator(channel, session, tasks, zone, confs[idx])
+                msg = await self.zone_activator(channel, session, tasks, zone, confs[idx], persons)
                 logging.warning(msg)
                 # Over write latest human timestamp on a given channel
                 self.class_channel_event[channel] = datetime.datetime.timestamp(datetime.datetime.now())
@@ -303,26 +311,27 @@ class SecVisionJetson:
             idx += 1
         await asyncio.gather(*tasks)
 
-    async def zone_activator(self, channel, session, tasks, zone, confidence):
-        msg = f" {channel_names[channel]} - {confidence:.2f} -  person found in zone {zone} - recording"
+    async def zone_activator(self, channel, session, tasks, zone, confidence, persons):
+        person = f'{persons} persons' if persons > 1 else f'{persons} person'
+        msg = f" {channel_names[channel]} - {confidence:.2f} - {person} found in zone {zone} - recording"
         if zone == 1:
             if len(self.zone1) == 0:
-                msg = f" {channel_names[channel]} - {confidence:.2f} - person found in zone {zone} - start recording"
+                msg = f" {channel_names[channel]} - {confidence:.2f} - {person} found in zone {zone} - start recording"
                 tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
             self.zone1[channel] = channel
         elif zone == 2:
             if len(self.zone2) == 0:
-                msg = f" {channel_names[channel]} - {confidence:.2f} - person found in zone {zone} - start recording"
+                msg = f" {channel_names[channel]} - {confidence:.2f} - {person} found in zone {zone} - start recording"
                 tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
             self.zone2[channel] = channel
         elif zone == 3:
             if len(self.zone3) == 0:
-                msg = f" {channel_names[channel]} - {confidence:.2f} - person found in zone {zone} - start recording"
+                msg = f" {channel_names[channel]} - {confidence:.2f} - {person} found in zone {zone} - start recording"
                 tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
             self.zone3[channel] = channel
         else:
             if len(self.zone4) == 0:
-                msg = f" {channel_names[channel]} - {confidence:.2f} - person found in zone {zone} - start recording"
+                msg = f" {channel_names[channel]} - {confidence:.2f} - {person} found in zone {zone} - start recording"
                 tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
             self.zone4[channel] = channel
         return msg
@@ -333,7 +342,7 @@ class SecVisionJetson:
     # The main loop
     async def main(self):
         async with aiohttp.ClientSession(headers=self.session_auth()) as session:
-            for i in range(1,5):
+            for i in range(1, 5):
                 await self.cleanstart(session, i)
             while True:
                 try:
@@ -358,6 +367,7 @@ class SecVisionJetson:
                     # logging.info(f" Inference loop - {(end - start - timer):.2f}s @ {8 / (end - start - timer):.2f}fps")
                 except aiohttp.client_exceptions.ClientConnectorError:
                     logging.info(f" ClientConnectorError")
+                    await asyncio.sleep(10)
                     pass
 
 
