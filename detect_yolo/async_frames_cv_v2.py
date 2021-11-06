@@ -16,8 +16,9 @@ async def get_frames(session, ip, channels, jpeg):
                     # img_np = cv2.imdecode(numpy.frombuffer(img, numpy.uint8), -1)
                     img_np = jpeg.decode(img, 1)
                     return f"{ch}01", img_np
-        except asyncio.TimeoutError:
-            logging.warning(' Request timedout !')
+        except asyncio.TimeoutError or aiohttp.client_exceptions.ClientOSError:
+            logging.warning(' Error occurred !')
+            await asyncio.sleep(5)
             pass
 
     for channel in range(1, int(channels)+1):

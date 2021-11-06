@@ -1,11 +1,12 @@
-import aiofiles
 import aiohttp
+from aiohttp import web
 import argparse
 import asyncio
 import async_frames_cv_v2 as af
 import base64
 import configparser
 import cv2
+from dateutil import parser
 import datetime
 import io
 import json
@@ -14,6 +15,7 @@ import numpy as np
 import os
 from pathlib import Path
 from PIL import Image
+from tinydb import TinyDB, Query
 import pytz
 import sys
 import threading
@@ -75,8 +77,8 @@ if args.category_num <= 0:
 if not os.path.isfile('yolo/%s.trt' % args.model):
     raise SystemExit('ERROR: file (yolo/%s.trt) not found!' % args.model)
 
-
 cwdpath = os.path.join(home, "Pictures/SecVision/")
+
 xml_on = "<IOPortData version=\"1.0\" xmlns=\"http://www.hikvision.com/ver20/XMLSchema\"><outputState>high</outputState></IOPortData>"
 xml_off = "<IOPortData version=\"1.0\" xmlns=\"http://www.hikvision.com/ver20/XMLSchema\"><outputState>low</outputState></IOPortData>"
 
@@ -95,23 +97,25 @@ thresholds = {
     '101': 0.78,
     '201': 0.78,
     '301': 0.78,
-    '401': 0.8,
+    '401': 0.86,
     '501': 0.92,
     '601': 0.92,
-    '701': 0.92,
-    '801': 0.8
+    '701': 0.78,
+    '801': 0.78
 }
 
 draw = {
-    '101': False,
-    '201': False,
-    '301': False,
-    '401': False,
-    '501': False,
-    '601': False,
-    '701': False,
-    '801': False
+    '101': True,
+    '201': True,
+    '301': True,
+    '401': True,
+    '501': True,
+    '601': True,
+    '701': True,
+    '801': True
 }
+fan_rpm = 2000
+
 
 class SecVisionJetson:
     channel_frames = []
@@ -128,8 +132,11 @@ class SecVisionJetson:
     vis = BBoxVisualization(cls_dict)
     trt_yolo = TrtYOLO(args.model, args.category_num, args.letter_box)
 
-    def __init__(self, cfg) -> None:
+    def __init__(self, cfg, db) -> None:
         self.config = cfg
+        self.database = db
+        self.chcnt = self.config.get('DVR', 'channels')
+        self.od = sorted(self.database.all(), key=lambda k: k['time'])
 
     def session_auth(self):
         authkey = f"{self.config.get('DVR', 'username')}:{self.config.get('DVR', 'password')}"
@@ -146,6 +153,58 @@ class SecVisionJetson:
                                            args=(e, obj, 5))
         heartbeatworker.setDaemon(True)
         heartbeatworker.start()
+
+        webserver = threading.Thread(target=SecVisionJetson.run_server, args=(SecVisionJetson.aiohttp_server(obj),))
+        webserver.start()
+
+    @staticmethod
+    def aiohttp_server(obj):
+        def index(request):
+            return web.FileResponse("index.html")
+
+        def latest_data(request):
+            # od = sorted(database.all(), key=lambda k: k['time'])
+            data = obj.od[-1]
+            person = f"{data['persons']} persons" if int(data['persons']) > 1 else f"{data['persons']} person"
+            display_date = data['time'][11:22]
+            return web.Response(text=f"{display_date} {data['confs']} {type(obj.od)}")
+
+        def latest_pic(request):
+            data = obj.od[-1]
+            return web.FileResponse(f"{data['path']}frame.jpg")
+
+        def previous_pic(request):
+            data = obj.od[-2]
+            return web.FileResponse(f"{data['path']}frame.jpg")
+
+        def channel(request):
+            ch = request.rel_url.query['id']
+            lastpic = {}
+            # obj.od(SecVision Class.od) is sorted by time,
+            data = obj.od
+            for detection in reversed(data):
+                if detection['channel'] == ch:
+                    lastpic = detection
+                    break
+            return web.FileResponse(f"{lastpic['path']}frame.jpg")
+
+        webapp = web.Application()
+        webapp.add_routes([web.get('/', index)])
+        webapp.add_routes([web.get('/latestdata', latest_data)])
+        webapp.add_routes([web.get('/latestpic', latest_pic)])
+        webapp.add_routes([web.get('/prevpic', previous_pic)])
+        webapp.add_routes([web.get('/channel', channel)])
+        runner = web.AppRunner(webapp)
+        return runner
+
+    @staticmethod
+    def run_server(runner):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(runner.setup())
+        site = web.TCPSite(runner, '0.0.0.0', 8080)
+        loop.run_until_complete(site.start())
+        loop.run_forever()
 
     @staticmethod
     def recorder_thread(event: threading.Event, obj, time: float) -> None:
@@ -164,13 +223,19 @@ class SecVisionJetson:
                     ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal = SecVisionJetson.jetson_metrics()
                     net_speed = sum(obj.network_speed) / len(obj.network_speed)
                     SecVisionJetson.log_metrics(ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal, net_speed)
+                    data = obj.database.all()[-1]
+                    person = f"{data['persons']} persons" if int(data['persons']) > 1 else f"{data['persons']} person"
+                    display_date = data['time'][11:22]
+
+                    logging.info(
+                        f" Last Detection : {display_date}: {channel_names[data['channel']]} -> {person} found")
                 if len(obj.class_channel_event) > 0:
                     for channel in obj.class_channel_event:
                         if float(obj.class_channel_event[channel]) > 0:
                             elapsed = datetime.datetime.now() - datetime.datetime.fromtimestamp(
                                 obj.class_channel_event[channel])
                             logging.warning(
-                                f" {channel_names[channel]} Person found {elapsed.total_seconds()}s ago")
+                                f" {channel_names[channel]} person found {elapsed.total_seconds()}s ago")
 
                             if elapsed > datetime.timedelta(seconds=15):
                                 zone = obj.determine_zone(channel)
@@ -228,7 +293,7 @@ class SecVisionJetson:
         # input_voltage = os.popen("cat /sys/bus/i2c/drivers/ina3221x/6-0040/iio\:device0/in_voltage0_input").read()
         # Fan PWM reading
         pwm = os.popen("cat /sys/devices/pwm-fan/hwmon/hwmon1/cur_pwm").read()
-        rpm = int(pwm) * (5000 / 256)
+        rpm = int(pwm) * (fan_rpm / 256)
         return ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal
 
     # DVR has 4 Alarm Output ports, they are electrically connected like so :
@@ -267,11 +332,10 @@ class SecVisionJetson:
                         f" Zone {zone} triggered off")
 
     # Network detection
-    async def detect(self, image,trt_yolo, conf_th, vis, channel, session):
+    async def detect(self, image, trt_yolo, conf_th, vis, channel, session):
         img = image
         boxes, confs, clss = trt_yolo.detect(img, conf_th)
         idx = 0
-        zone = 0
         tasks = []
         persons = 0
         # count persons
@@ -281,14 +345,16 @@ class SecVisionJetson:
         for cococlass in clss:
             if cococlass == 0 and confs[idx] >= thresholds[channel]:
                 now = datetime.datetime.now()
+                timenow = str(now.replace(tzinfo=pytz.utc))
                 zone = self.determine_zone(channel)
                 msg = await self.zone_activator(channel, session, tasks, zone, confs[idx], persons)
                 logging.warning(msg)
+
                 # Over write latest human timestamp on a given channel
                 self.class_channel_event[channel] = datetime.datetime.timestamp(datetime.datetime.now())
                 # Image saving
                 imgdir = "frames/" + now.strftime('%Y-%m-%d') + "/" + f"{channel}" + "/"
-                wd = os.path.join(cwdpath, imgdir)
+                wd = os.path.join("../", imgdir)
                 try:
                     os.makedirs(wd)
                 except FileExistsError:
@@ -300,11 +366,22 @@ class SecVisionJetson:
                     img = vis.draw_bboxes(img, boxes, confs, clss)
                 else:
                     pass
+                savepath = wd + f"{now.strftime('%H_%M_%S.%f')}_person_"
                 np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_boxes", boxes)
                 np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_confs", confs)
                 np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_clss", clss)
-                cv2.imwrite(wd + f"{now.strftime('%H_%M_%S.%f')}_person_frame.jpg", img,
+                cv2.imwrite(savepath + "frame.jpg", img,
                             [int(cv2.IMWRITE_JPEG_QUALITY), 83])
+
+                self.database.insert({
+                    "time": f"{timenow}",
+                    "persons": str(persons),
+                    "channel": f"{channel}",
+                    "path": f"{savepath}",
+                    "confs": str(confs[idx])
+                }),
+                # self.od = sorted(self.database.all(), key=lambda k: k['time'])
+                self.od = self.database.all()
                 # image_file = Image.open(io.BytesIO(bytes))
                 # image_file.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_frame.jpg")
                 break
@@ -348,7 +425,7 @@ class SecVisionJetson:
                 try:
                     start = time.time()
                     channel_frames, timer = await af.get_frames(session, self.config.get('DVR', 'ip'),
-                                                                self.config.get('DVR', 'channels'), self.jpeg)
+                                                                self.chcnt, self.jpeg)
 
                     for channel, frame in channel_frames:
                         # detect objects in the image
@@ -358,7 +435,7 @@ class SecVisionJetson:
                     for channel in self.class_garbage_collector:
                         await self.trigger_zone(session, self.determine_zone(channel), False)
                     self.class_garbage_collector = []
-                    self.network_speed.append(8 / (end - start - timer))
+                    self.network_speed.append(int(self.chcnt) / (end - start - timer))
                     # keeps the network average array nice and small
                     if len(self.network_speed) > 128:
                         for i in range(0, 65):
@@ -378,7 +455,8 @@ if __name__ == '__main__':
     config = configparser.ConfigParser()
     config.read(settings)
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
-    app = SecVisionJetson(config)
+    database = TinyDB('./db.json')
+    app = SecVisionJetson(config, database)
     SecVisionJetson.initworkers(app)
     loop = asyncio.get_event_loop()
     result = loop.run_until_complete(app.main())

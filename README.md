@@ -12,13 +12,22 @@ Technologies used
   - https://github.com/jkjung-avt/tensorrt_demos
   - Environment is ready when Demo #5 runs with yolov4-416 model
     
-
 ### Goals
 
  - Use still frames from HTTP GET from DVR to analyze zones(cameras)
  - Detected persons
    - HTTP PUT to HikVision DVR
    - Use DVR output connected to input to trigger recording on DVR
+
+## To Do 
+
+  - [x] Add database for stats (added TinyDB)
+    - [ ] Tables per channel
+    - [ ] Change database 
+  - [x] Add web api
+  - [x] Add dashboard
+  - [ ] make the code neater?
+  - [ ] Make it not use AlarmIO to trigger events (zoneless operation)
  
  ### Usage
 
@@ -33,7 +42,7 @@ Technologies used
    On DVR set basic auth for HTTP request
    
     git clone https://github.com/Psynosaur/JetsonSecVision && cd JetsonSecVision
-    pip3 install aiofiles aiohttp asyncio colorlog
+    pip3 install aiofiles aiohttp asyncio colorlog tinydb
 
    ### TensorRT needs symlinks to tensorrt_demo project
    #### Setup environment
@@ -125,11 +134,7 @@ Technologies used
     Oct 26 20:36:57 jetson secvision_yolo[26856]: INFO: Network 4.70fps
     Oct 26 20:36:57 jetson secvision_yolo[26856]: INFO: Zone 3 triggered off
     
+ Dashboard available on jetson IP address on port **8080** 
 
-## To Do 
+   ![jtop](./detect_yolo/mobile_dash.jpg)  
 
-  - [ ] Add database for stats
-  - [ ] Add web api
-  - [ ] Add dashboard
-  - [ ] Refactor where possible
-  - [ ] Make it not use AlarmIO to trigger events (zoneless operation)

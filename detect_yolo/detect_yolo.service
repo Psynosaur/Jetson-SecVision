@@ -7,7 +7,7 @@ Environment=PYTHONUNBUFFERED=1
 WorkingDirectory=placeholder
 ExecStart=/usr/bin/python3 placeholder/detect_yolo.py
 Restart=always
-RestartSec=120
+RestartSec=30
 User=suchuser
 SyslogIdentifier=secvision_yolo
 
