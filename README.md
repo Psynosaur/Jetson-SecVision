@@ -44,15 +44,16 @@ Technologies used
     git clone https://github.com/Psynosaur/JetsonSecVision && cd JetsonSecVision
     pip3 install aiofiles aiohttp asyncio colorlog tinydb
 
-   ### TensorRT needs symlinks to tensorrt_demo project
+   ### Project needs symlinks to tensorrt_demo project
    #### Setup environment
 
     cd detect_yolo 
     ln -s ${HOME}/tensorrt_demos/utils/ ./utils
     ln -s ${HOME}/tensorrt_demos/plugins/ ./plugins
     ln -s ${HOME}/tensorrt_demos/yolo/ ./yolo
+    cd ..
 
-   #### Run script with model of your choice build from TensorRT demos
+   #### Run script with model of your choice built from the TensorRT demos instructions
 
      python3 detect_yolo/detect_yolo.py -m yolov4-416
 

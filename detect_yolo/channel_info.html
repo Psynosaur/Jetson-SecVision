@@ -9,7 +9,61 @@
 </head>
 
 <body class="is-fullheight">
+    <nav class="navbar is-dark" role="navigation" aria-label="main navigation">
 
+        <div class="navbar-brand has-text-light">
+            <a class="navbar-item has-text-light" href="/">
+                SecVision
+            </a>
+
+            <a role="button" class="navbar-burger has-text-light" aria-label="menu" aria-expanded="false"
+                data-target="pew">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </a>
+        </div>
+        <div id="pew" class="navbar-menu has-background-dark">
+            <ul class="navbar-start">
+                <a class="navbar-item has-text-light" href="/chanpics?101">Front Lawn</a>
+                <a class="navbar-item has-text-light" href="/chanpics?201">Front Door</a>
+                <a class="navbar-item has-text-light" href="/chanpics?301">Driveway</a>
+                <a class="navbar-item has-text-light" href="/chanpics?401">Side Gate</a>
+                <a class="navbar-item has-text-light" href="/chanpics?501">Courtyard</a>
+                <a class="navbar-item has-text-light" href="/chanpics?601">Garage Gate</a>
+                <a class="navbar-item has-text-light" href="/chanpics?701">Back Lawn</a>
+                <a class="navbar-item has-text-light" href="/chanpics?801">Pool Area</a>
+            </ul>
+        </div>
+
+    </nav>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // Get all "navbar-burger" elements
+            const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+
+            // Check if there are any navbar burgers
+            if ($navbarBurgers.length > 0) {
+
+                // Add a click event on each of them
+                $navbarBurgers.forEach(el => {
+                    el.addEventListener('click', () => {
+
+                        // Get the target from the "data-target" attribute
+                        const target = el.dataset.target;
+                        const $target = document.getElementById(target);
+
+                        // Toggle the "is-active" class on both the "navbar-burger" and the "navbar-menu"
+                        el.classList.toggle('is-active');
+                        $target.classList.toggle('is-active');
+
+                    });
+                });
+            }
+
+        });
+    </script>
     <script>
 
         async function fetchDataAsync(url) {
@@ -62,21 +116,41 @@
                         idx = idx + 1;
                     }
                 });
+                console.log('-------------------');
             });
         }
         docUrl = document.URL
         let channel = docUrl.substring(docUrl.length - 3);
-        fetchDataAsync('/chaninfo?id=' + channel);
+        page = 1
+        fetchDataAsync('/chaninfo?id=' + channel + '&page=' + page);
+
+        async function forwardPage() {
+            page++;
+            fetchDataAsync('/chaninfo?id=' + channel + '&page=' + page);
+        }
+        async function backPage() {
+            page--;
+            if (page == 0) {
+                page = 1;
+            }
+            fetchDataAsync('/chaninfo?id=' + channel + '&page=' + page);
+        }
     </script>
     <section class="hero">
         <div class="hero-body">
             <div class="container is-fluid is-0-mobile">
+                <div class="buttons">
+                    <button onclick="backPage()" class="button is-small is-info">Prev</button>
+                <!-- </div>
+                <div class="buttons"> -->
+                    <button onclick="forwardPage()" class="button is-small is-info">Next</button>
+                </div>
                 <div class="columns">
                     <div class="column is-one-third">
                         <div class="card">
                             <div class="card-image">
                                 <figure class="image is-16by9">
-                                    <a id="c0">
+                                    <a target="_blank" id="c0">
                                         <img id="0">
                                     </a>
                                 </figure>
@@ -88,7 +162,7 @@
                         <div class="card">
                             <div class="card-image">
                                 <figure class="image is-16by9">
-                                    <a id="c1">
+                                    <a target="_blank" id="c1">
                                         <img id="1">
                                     </a>
                                 </figure>
@@ -100,7 +174,7 @@
                         <div class="card">
                             <div class="card-image">
                                 <figure class="image is-16by9">
-                                    <a id="c2">
+                                    <a target="_blank" id="c2">
                                         <img id="2">
                                     </a>
                                 </figure>
@@ -115,7 +189,7 @@
                         <div class="card">
                             <div class="card-image">
                                 <figure class="image is-16by9">
-                                    <a id="c3">
+                                    <a target="_blank" id="c3">
                                         <img id="3">
                                     </a>
                                 </figure>
@@ -127,7 +201,7 @@
                         <div class="card">
                             <div class="card-image">
                                 <figure class="image is-16by9">
-                                    <a id="c4">
+                                    <a target="_blank" id="c4">
                                         <img id="4">
                                     </a>
                                 </figure>
@@ -139,7 +213,7 @@
                         <div class="card">
                             <div class="card-image">
                                 <figure class="image is-16by9">
-                                    <a id="c5">
+                                    <a target="_blank" id="c5">
                                         <img id="5">
                                     </a>
                                 </figure>
@@ -154,7 +228,7 @@
                         <div class="card">
                             <div class="card-image">
                                 <figure class="image is-16by9">
-                                    <a id="c6">
+                                    <a target="_blank" id="c6">
                                         <img id="6">
                                     </a>
                                 </figure>
@@ -166,7 +240,7 @@
                         <div class="card">
                             <div class="card-image">
                                 <figure class="image is-16by9">
-                                    <a id="c7">
+                                    <a target="_blank" id="c7">
                                         <img id="7">
                                     </a>
                                 </figure>
@@ -178,7 +252,7 @@
                         <div class="card">
                             <div class="card-image">
                                 <figure class="image is-16by9">
-                                    <a id="c8">
+                                    <a target="_blank" id="c8">
                                         <img id="8">
                                     </a>
                                 </figure>

@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="en" style="background-color: #313131;">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="expires" content="0">
     <title>SecVision Dashboard</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
 </head>
+
 <body class="is-fullheight">
 
     <nav class="navbar is-dark" role="navigation" aria-label="main navigation">
@@ -14,8 +17,9 @@
             <a class="navbar-item has-text-light" href="/">
                 SecVision
             </a>
-    
-            <a role="button" class="navbar-burger has-text-light" aria-label="menu" aria-expanded="false" data-target="pew">
+
+            <a role="button" class="navbar-burger has-text-light" aria-label="menu" aria-expanded="false"
+                data-target="pew">
                 <span aria-hidden="true"></span>
                 <span aria-hidden="true"></span>
                 <span aria-hidden="true"></span>
@@ -33,163 +37,187 @@
                 <a class="navbar-item has-text-light" href="/chanpics?801">Pool Area</a>
             </ul>
         </div>
-    
+
     </nav>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
 
-<section class="hero">
-    <div class="hero-body">
-        <div class="container is-fluid is-0-mobile">
-            <div class="columns is-desktop">
-                <div class="column">
-                    <h3 class="has-text-light">Latest</h3>
-                    <div class="card">
-                        <div class="card-image">
-                            <figure class="image is-16by9">
-                                <a href="/latestpic">
-                                    <img src="/latestpic" alt="Latest">
-                                </a>
-                            </figure>
+            // Get all "navbar-burger" elements
+            const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+
+            // Check if there are any navbar burgers
+            if ($navbarBurgers.length > 0) {
+
+                // Add a click event on each of them
+                $navbarBurgers.forEach(el => {
+                    el.addEventListener('click', () => {
+
+                        // Get the target from the "data-target" attribute
+                        const target = el.dataset.target;
+                        const $target = document.getElementById(target);
+
+                        // Toggle the "is-active" class on both the "navbar-burger" and the "navbar-menu"
+                        el.classList.toggle('is-active');
+                        $target.classList.toggle('is-active');
+
+                    });
+                });
+            }
+
+        });
+    </script>
+
+    <section class="hero">
+        <div class="hero-body">
+            <div class="container is-fluid is-0-mobile">
+                <div class="columns is-desktop">
+                    <div class="column">
+                        <h3 class="has-text-light">Latest</h3>
+                        <div class="card">
+                            <div class="card-image">
+                                <figure class="image is-16by9">
+                                    <a href="/latestpic">
+                                        <img src="/latestpic" alt="Latest">
+                                    </a>
+                                </figure>
+                            </div>
+
                         </div>
+                    </div>
+                    <div class="column">
+                        <h3 class="has-text-light">Previous</h3>
+                        <div class="card">
+                            <div class="card-image">
+                                <figure class="image is-16by9">
+                                    <a href="/prevpic">
+                                        <img src="/prevpic" alt="Previous">
+                                    </a>
+                                </figure>
+                            </div>
 
+                        </div>
                     </div>
                 </div>
-                <div class="column">
-                    <h3 class="has-text-light">Previous</h3>
-                    <div class="card">
-                        <div class="card-image">
-                            <figure class="image is-16by9">
-                                <a href="/prevpic">
-                                <img src="/prevpic" alt="Previous">
-                                </a>
-                            </figure>
-                        </div>
+            </div>
 
+            <div class="container is-fluid is-0-mobile">
+                <div class="columns">
+                    <div class="column is-one-third">
+                        <div class="card">
+                            <div class="card-image">
+                                <figure class="image is-16by9">
+                                    <a href="/channel?id=101">
+                                        <img src="/channel?id=101" alt="Front Lawn">
+                                    </a>
+                                </figure>
+                            </div>
+
+                        </div>
+                    </div>
+                    <div class="column is-one-third">
+                        <div class="card">
+                            <div class="card-image">
+                                <figure class="image is-16by9">
+                                    <a href="/channel?id=201">
+                                        <img src="/channel?id=201" alt="Front Door">
+                                    </a>
+                                </figure>
+                            </div>
+
+                        </div>
+                    </div>
+                    <div class="column is-one-third">
+                        <div class="card">
+                            <div class="card-image">
+                                <figure class="image is-16by9">
+                                    <a href="/channel?id=301">
+                                        <img src="/channel?id=301" alt="Driveway">
+                                    </a>
+                                </figure>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <div class="columns">
+                    <div class="column is-one-third">
+                        <div class="card">
+                            <div class="card-image">
+                                <figure class="image is-16by9">
+                                    <a href="/channel?id=401">
+                                        <img src="/channel?id=401" alt="Side Gate">
+                                    </a>
+                                </figure>
+                            </div>
+
+                        </div>
+                    </div>
+                    <div class="column is-one-third">
+                        <div class="card">
+                            <div class="card-image">
+                                <figure class="image is-16by9">
+                                    <a href="/channel?id=501">
+                                        <img src="/channel?id=501" alt="Courtyard">
+                                    </a>
+                                </figure>
+                            </div>
+
+                        </div>
+                    </div>
+                    <div class="column is-one-third">
+                        <div class="card">
+                            <div class="card-image">
+                                <figure class="image is-16by9">
+                                    <a href="/channel?id=601">
+                                        <img src="/channel?id=601" alt="Garage Gate">
+                                    </a>
+                                </figure>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <div class="columns">
+                    <div class="column">
+                        <div class="card">
+                            <div class="card-image">
+                                <figure class="image is-16by9">
+                                    <a href="/channel?id=701">
+                                        <img src="/channel?id=701" alt="Back Lawn">
+                                    </a>
+                                </figure>
+                            </div>
+
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="card">
+                            <div class="card-image">
+                                <figure class="image is-16by9">
+                                    <a href="/channel?id=801">
+                                        <img src="/channel?id=801" alt="Pool">
+                                    </a>
+                                </figure>
+                            </div>
+
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="card" style="background-color: #313131;">
+                            <div class="card-image">
+                                <figure class="image is-16by9">
+
+                                </figure>
+                            </div>
+
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-<!--    </div>-->
-<!--</section>-->
-
-<!--<section class="hero">-->
-<!--    <div class="hero-body">-->
-        <div class="container is-fluid is-0-mobile">
-            <div class="columns">
-                <div class="column is-one-third">
-                    <div class="card">
-                        <div class="card-image">
-                            <figure class="image is-16by9">
-                                <a href="/channel?id=101">
-                                    <img src="/channel?id=101" alt="Front Lawn">
-                                </a>
-                            </figure>
-                        </div>
-
-                    </div>
-                </div>
-                <div class="column is-one-third">
-                    <div class="card">
-                        <div class="card-image">
-                            <figure class="image is-16by9">
-                                <a href="/channel?id=201">
-                                    <img src="/channel?id=201" alt="Front Door">
-                                </a>
-                            </figure>
-                        </div>
-
-                    </div>
-                </div>
-                <div class="column is-one-third">
-                    <div class="card">
-                        <div class="card-image">
-                            <figure class="image is-16by9">
-                                <a href="/channel?id=301">
-                                    <img src="/channel?id=301" alt="Driveway">
-                                </a>
-                            </figure>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-
-            <div class="columns">
-                <div class="column is-one-third">
-                    <div class="card">
-                        <div class="card-image">
-                            <figure class="image is-16by9">
-                                <a href="/channel?id=401">
-                                    <img src="/channel?id=401" alt="Side Gate">
-                                </a>
-                            </figure>
-                        </div>
-
-                    </div>
-                </div>
-                <div class="column is-one-third">
-                    <div class="card">
-                        <div class="card-image">
-                            <figure class="image is-16by9">
-                                <a href="/channel?id=501">
-                                    <img src="/channel?id=501" alt="Courtyard">
-                                </a>
-                            </figure>
-                        </div>
-
-                    </div>
-                </div>
-                <div class="column is-one-third">
-                    <div class="card">
-                        <div class="card-image">
-                            <figure class="image is-16by9">
-                                <a href="/channel?id=601">
-                                    <img src="/channel?id=601" alt="Garage Gate">
-                                </a>
-                            </figure>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-
-            <div class="columns">
-                <div class="column">
-                    <div class="card">
-                        <div class="card-image">
-                            <figure class="image is-16by9">
-                                <a href="/channel?id=701">
-                                    <img src="/channel?id=701" alt="Back Lawn">
-                                </a>
-                            </figure>
-                        </div>
-
-                    </div>
-                </div>
-                <div class="column">
-                    <div class="card">
-                        <div class="card-image">
-                            <figure class="image is-16by9">
-                                <a href="/channel?id=801">
-                                    <img src="/channel?id=801" alt="Pool">
-                                </a>
-                            </figure>
-                        </div>
-
-                    </div>
-                </div>
-                <div class="column">
-                    <div class="card" style="background-color: #313131;">
-                        <div class="card-image">
-                            <figure class="image is-16by9">
-
-                            </figure>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
+    </section>
 </body>
+
 </html>

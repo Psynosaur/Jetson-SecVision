@@ -184,20 +184,23 @@ class SecVisionJetson:
 
         def channel_info(request):
             try:
+                ch = '101'
                 ch = request.rel_url.query['id']
+                page = "1"
+                page = request.rel_url.query['page']
                 last_nine = []
                 # obj.od(SecVision Class.od) is sorted by time,
                 data = obj.od
                 cnt = 0
+                page = 1 if int(page) == 0 else int(page)
                 for detection in reversed(data):
-                    if cnt > 8:
-                        print(f"found 9 detections {len(last_nine)}")
+                    if cnt > (8 * page):
                         break
                     if detection['channel'] == ch:
                         last_nine.append(detection)
                         cnt += 1
                 
-                return web.json_response(last_nine, headers=headers)
+                return web.json_response(last_nine[-9:], headers=headers)
             except KeyError:
                 ch = '101'
                 pass
@@ -214,7 +217,8 @@ class SecVisionJetson:
             return web.FileResponse(f"{lastpic['path']}frame.jpg", headers=headers)
 
         webapp = web.Application()
-        webapp.add_routes([web.static('/frames', "../frames")])
+        webapp.add_routes([web.static('/frames', "../frames", show_index=True)])
+        # webapp.add_routes([web.static('/', "../")])
         webapp.add_routes([web.get('/', index)])
         webapp.add_routes([web.get('/latestdata', latest_data)])
         webapp.add_routes([web.get('/latestpic', latest_pic)])
