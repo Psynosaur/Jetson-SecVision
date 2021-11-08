@@ -159,25 +159,50 @@ class SecVisionJetson:
 
     @staticmethod
     def aiohttp_server(obj):
+        headers = {
+            'Cache-Control': 'no-cache, max-age=0, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '-1'
+        }
         def index(request):
-            return web.FileResponse("index.html")
+            return web.FileResponse("index.html", headers=headers)
+        
+        def channel_pics(request):
+            return web.FileResponse("channel_info.html", headers=headers)
 
         def latest_data(request):
-            # od = sorted(database.all(), key=lambda k: k['time'])
             data = obj.od[-1]
-            person = f"{data['persons']} persons" if int(data['persons']) > 1 else f"{data['persons']} person"
-            display_date = data['time'][11:22]
-            return web.Response(text=f"{display_date} {data['confs']} {type(obj.od)}")
+            return web.json_response(data, headers=headers)
 
         def latest_pic(request):
             data = obj.od[-1]
-            return web.FileResponse(f"{data['path']}frame.jpg")
+            return web.FileResponse(f"{data['path']}frame.jpg", headers=headers)
 
         def previous_pic(request):
             data = obj.od[-2]
-            return web.FileResponse(f"{data['path']}frame.jpg")
+            return web.FileResponse(f"{data['path']}frame.jpg", headers=headers)
 
-        def channel(request):
+        def channel_info(request):
+            try:
+                ch = request.rel_url.query['id']
+                last_nine = []
+                # obj.od(SecVision Class.od) is sorted by time,
+                data = obj.od
+                cnt = 0
+                for detection in reversed(data):
+                    if cnt > 8:
+                        print(f"found 9 detections {len(last_nine)}")
+                        break
+                    if detection['channel'] == ch:
+                        last_nine.append(detection)
+                        cnt += 1
+                
+                return web.json_response(last_nine, headers=headers)
+            except KeyError:
+                ch = '101'
+                pass
+
+        def channel_pic(request):
             ch = request.rel_url.query['id']
             lastpic = {}
             # obj.od(SecVision Class.od) is sorted by time,
@@ -186,14 +211,17 @@ class SecVisionJetson:
                 if detection['channel'] == ch:
                     lastpic = detection
                     break
-            return web.FileResponse(f"{lastpic['path']}frame.jpg")
+            return web.FileResponse(f"{lastpic['path']}frame.jpg", headers=headers)
 
         webapp = web.Application()
+        webapp.add_routes([web.static('/frames', "../frames")])
         webapp.add_routes([web.get('/', index)])
         webapp.add_routes([web.get('/latestdata', latest_data)])
         webapp.add_routes([web.get('/latestpic', latest_pic)])
         webapp.add_routes([web.get('/prevpic', previous_pic)])
-        webapp.add_routes([web.get('/channel', channel)])
+        webapp.add_routes([web.get('/channel', channel_pic)])
+        webapp.add_routes([web.get('/chaninfo', channel_info)])
+        webapp.add_routes([web.get('/chanpics', channel_pics)])
         runner = web.AppRunner(webapp)
         return runner
 
@@ -441,7 +469,7 @@ class SecVisionJetson:
                         for i in range(0, 65):
                             self.network_speed.pop(0)
 
-                    # logging.info(f" Inference loop - {(end - start - timer):.2f}s @ {8 / (end - start - timer):.2f}fps")
+                    logging.info(f" Inference loop - {(end - start - timer):.2f}s @ {int(self.chcnt) / (end - start - timer):.2f}fps")
                 except aiohttp.client_exceptions.ClientConnectorError:
                     logging.info(f" ClientConnectorError")
                     await asyncio.sleep(10)
