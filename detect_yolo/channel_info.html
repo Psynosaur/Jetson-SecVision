@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="en" style="background-color: #313131;">
+<html class="has-navbar-fixed-top" lang="en" style="background-color: #313131;">
 
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="expires" content="0">
+    <meta http-equiv="Cache-Control" content="max-age=31536000">
     <title>SecVision Dashboard</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
 </head>
 
 <body class="is-fullheight">
-    <nav class="navbar is-dark" role="navigation" aria-label="main navigation">
+    <nav class="navbar is-fixed-top is-dark" role="navigation" aria-label="main navigation">
 
         <div class="navbar-brand has-text-light">
             <a class="navbar-item has-text-light" href="/">
@@ -25,19 +25,19 @@
         </div>
         <div id="pew" class="navbar-menu has-background-dark">
             <ul class="navbar-start">
-                <a class="navbar-item has-text-light" href="/chanpics?101">Front Lawn</a>
-                <a class="navbar-item has-text-light" href="/chanpics?201">Front Door</a>
-                <a class="navbar-item has-text-light" href="/chanpics?301">Driveway</a>
-                <a class="navbar-item has-text-light" href="/chanpics?401">Side Gate</a>
-                <a class="navbar-item has-text-light" href="/chanpics?501">Courtyard</a>
-                <a class="navbar-item has-text-light" href="/chanpics?601">Garage Gate</a>
-                <a class="navbar-item has-text-light" href="/chanpics?701">Back Lawn</a>
-                <a class="navbar-item has-text-light" href="/chanpics?801">Pool Area</a>
+                <a class="navbar-item has-text-light" href="/history?channel=101&page=1">Front Lawn</a>
+                <a class="navbar-item has-text-light" href="/history?channel=201&page=1">Front Door</a>
+                <a class="navbar-item has-text-light" href="/history?channel=301&page=1">Driveway</a>
+                <a class="navbar-item has-text-light" href="/history?channel=401&page=1">Side Gate</a>
+                <a class="navbar-item has-text-light" href="/history?channel=501&page=1">Courtyard</a>
+                <a class="navbar-item has-text-light" href="/history?channel=601&page=1">Garage Gate</a>
+                <a class="navbar-item has-text-light" href="/history?channel=701&page=1">Back Lawn</a>
+                <a class="navbar-item has-text-light" href="/history?channel=801&page=1">Pool Area</a>
             </ul>
         </div>
 
     </nav>
-    <script>
+    <script type="text/javascript">
         document.addEventListener('DOMContentLoaded', () => {
 
             // Get all "navbar-burger" elements
@@ -64,45 +64,42 @@
 
         });
     </script>
-    <script>
-
+    <script type="text/javascript">
+        const urlParams = new URLSearchParams(window.location.search);
+        let channel = urlParams.get('channel');
+        let page = urlParams.get('page');
+        let description = ""
+        if (page < 1) {
+            page = 1;
+        }
         async function fetchDataAsync(url) {
             const response = await fetch(url);
             const data = await response.json();
             let idx = 0
-            let channel = url.substring(url.length - 3);
-            let description = ""
+            
             switch (channel) {
                 case '101':
-                    // code block
                     description = "Front Lawn"
                     break;
                 case '201':
-                    // code block
                     description = "Front Door"
                     break;
                 case '301':
-                    // code block
                     description = "Driveway"
                     break;
                 case '401':
-                    // code block
                     description = "Side Gate"
                     break;
                 case '501':
-                    // code block
                     description = "Courtyard"
                     break;
                 case '601':
-                    // code block
                     description = "Garage Gate"
                     break;
                 case '701':
-                    // code block
                     description = "Back Lawn"
                     break;
                 case '801':
-                    // code block
                     description = "Pool Area"
                     break;
             }
@@ -116,37 +113,31 @@
                         idx = idx + 1;
                     }
                 });
-                console.log('-------------------');
             });
         }
-        docUrl = document.URL
-        let channel = docUrl.substring(docUrl.length - 3);
-        page = 1
         fetchDataAsync('/chaninfo?id=' + channel + '&page=' + page);
-
+    </script>
+    <script type="text/javascript">
         async function forwardPage() {
             page++;
-            fetchDataAsync('/chaninfo?id=' + channel + '&page=' + page);
+            let uri = `/history?channel=${channel}&page=${page}`;
+            window.location.href = uri;
         }
         async function backPage() {
             page--;
-            if (page == 0) {
+            if (page === 0) {
                 page = 1;
+                return;
             }
-            fetchDataAsync('/chaninfo?id=' + channel + '&page=' + page);
+            let uri = `/history?channel=${channel}&page=${page}`;
+            window.location.href = uri;
         }
     </script>
     <section class="hero">
         <div class="hero-body">
-            <div class="container is-fluid is-0-mobile">
-                <div class="buttons">
-                    <button onclick="backPage()" class="button is-small is-info">Prev</button>
-                <!-- </div>
-                <div class="buttons"> -->
-                    <button onclick="forwardPage()" class="button is-small is-info">Next</button>
-                </div>
-                <div class="columns">
-                    <div class="column is-one-third">
+            <div class="container is-fluid">
+                <div class="columns is-desktop">
+                    <div class="column">
                         <div class="card">
                             <div class="card-image">
                                 <figure class="image is-16by9">
@@ -158,7 +149,7 @@
 
                         </div>
                     </div>
-                    <div class="column is-one-third">
+                    <div class="column">
                         <div class="card">
                             <div class="card-image">
                                 <figure class="image is-16by9">
@@ -170,7 +161,7 @@
 
                         </div>
                     </div>
-                    <div class="column is-one-third">
+                    <div class="column">
                         <div class="card">
                             <div class="card-image">
                                 <figure class="image is-16by9">
@@ -184,8 +175,8 @@
                     </div>
                 </div>
 
-                <div class="columns">
-                    <div class="column is-one-third">
+                <div class="columns is-desktop">
+                    <div class="column">
                         <div class="card">
                             <div class="card-image">
                                 <figure class="image is-16by9">
@@ -197,7 +188,7 @@
 
                         </div>
                     </div>
-                    <div class="column is-one-third">
+                    <div class="column">
                         <div class="card">
                             <div class="card-image">
                                 <figure class="image is-16by9">
@@ -209,7 +200,7 @@
 
                         </div>
                     </div>
-                    <div class="column is-one-third">
+                    <div class="column">
                         <div class="card">
                             <div class="card-image">
                                 <figure class="image is-16by9">
@@ -223,7 +214,7 @@
                     </div>
                 </div>
 
-                <div class="columns">
+                <div class="columns is-desktop">
                     <div class="column">
                         <div class="card">
                             <div class="card-image">
@@ -259,6 +250,14 @@
                             </div>
 
                         </div>
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="column is-half">
+                        <button onclick="backPage()" class="button is-medium is-info">Prev</button>
+                    </div>
+                    <div class="column is-half has-text-right">
+                        <button onclick="forwardPage()" class="button is-medium is-info">Next</button>
                     </div>
                 </div>
             </div>

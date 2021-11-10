@@ -96,7 +96,7 @@ channel_names = {
 thresholds = {
     '101': 0.78,
     '201': 0.78,
-    '301': 0.78,
+    '301': 0.82,
     '401': 0.86,
     '501': 0.92,
     '601': 0.92,
@@ -168,7 +168,7 @@ class SecVisionJetson:
             return web.FileResponse("index.html", headers=headers)
         
         def channel_pics(request):
-            return web.FileResponse("channel_info.html", headers=headers)
+            return web.FileResponse("channel_info.html")
 
         def latest_data(request):
             data = obj.od[-1]
@@ -191,18 +191,17 @@ class SecVisionJetson:
                 last_nine = []
                 # obj.od(SecVision Class.od) is sorted by time,
                 data = obj.od
-                cnt = 0
+                cnt = 1
                 page = 1 if int(page) == 0 else int(page)
                 for detection in reversed(data):
-                    if cnt > (8 * page):
+                    if cnt > (9 * page):
                         break
                     if detection['channel'] == ch:
                         last_nine.append(detection)
                         cnt += 1
                 
-                return web.json_response(last_nine[-9:], headers=headers)
+                return web.json_response(last_nine[-9:])
             except KeyError:
-                ch = '101'
                 pass
 
         def channel_pic(request):
@@ -217,7 +216,7 @@ class SecVisionJetson:
             return web.FileResponse(f"{lastpic['path']}frame.jpg", headers=headers)
 
         webapp = web.Application()
-        webapp.add_routes([web.static('/frames', "../frames", show_index=True)])
+        webapp.add_routes([web.static('/frames', "../frames", show_index=True, append_version=True)])
         # webapp.add_routes([web.static('/', "../")])
         webapp.add_routes([web.get('/', index)])
         webapp.add_routes([web.get('/latestdata', latest_data)])
@@ -225,7 +224,7 @@ class SecVisionJetson:
         webapp.add_routes([web.get('/prevpic', previous_pic)])
         webapp.add_routes([web.get('/channel', channel_pic)])
         webapp.add_routes([web.get('/chaninfo', channel_info)])
-        webapp.add_routes([web.get('/chanpics', channel_pics)])
+        webapp.add_routes([web.get('/history', channel_pics)])
         runner = web.AppRunner(webapp)
         return runner
 
