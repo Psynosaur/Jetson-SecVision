@@ -8,35 +8,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
 </head>
 
-<body class="is-fullheight">
-    <nav class="navbar is-fixed-top is-dark" role="navigation" aria-label="main navigation">
-
-        <div class="navbar-brand has-text-light">
-            <a class="navbar-item has-text-light" href="/">
-                SecVision
-            </a>
-
-            <a role="button" class="navbar-burger has-text-light" aria-label="menu" aria-expanded="false"
-                data-target="pew">
-                <span aria-hidden="true"></span>
-                <span aria-hidden="true"></span>
-                <span aria-hidden="true"></span>
-            </a>
-        </div>
-        <div id="pew" class="navbar-menu has-background-dark">
-            <ul class="navbar-start">
-                <a class="navbar-item has-text-light" href="/history?channel=101&page=1">Front Lawn</a>
-                <a class="navbar-item has-text-light" href="/history?channel=201&page=1">Front Door</a>
-                <a class="navbar-item has-text-light" href="/history?channel=301&page=1">Driveway</a>
-                <a class="navbar-item has-text-light" href="/history?channel=401&page=1">Side Gate</a>
-                <a class="navbar-item has-text-light" href="/history?channel=501&page=1">Courtyard</a>
-                <a class="navbar-item has-text-light" href="/history?channel=601&page=1">Garage Gate</a>
-                <a class="navbar-item has-text-light" href="/history?channel=701&page=1">Back Lawn</a>
-                <a class="navbar-item has-text-light" href="/history?channel=801&page=1">Pool Area</a>
-            </ul>
-        </div>
-
-    </nav>
+<body>
+    <!-- NAVBAR BURGER TOGGLER -->
     <script type="text/javascript">
         document.addEventListener('DOMContentLoaded', () => {
 
@@ -64,6 +37,7 @@
 
         });
     </script>
+    <!-- FETCH DATAS -->
     <script type="text/javascript">
         const urlParams = new URLSearchParams(window.location.search);
         let channel = urlParams.get('channel');
@@ -76,7 +50,7 @@
             const response = await fetch(url);
             const data = await response.json();
             let idx = 0
-            
+
             switch (channel) {
                 case '101':
                     description = "Front Lawn"
@@ -108,7 +82,7 @@
                     if (key == 'path') {
                         document.getElementById(idx).src = value + 'frame.jpg';
                         document.getElementById(idx).alt = description;
-                        let piclink = "c" + idx;
+                        let piclink = "p" + idx;
                         document.getElementById(piclink).href = value + 'frame.jpg';
                         idx = idx + 1;
                     }
@@ -117,148 +91,182 @@
         }
         fetchDataAsync('/chaninfo?id=' + channel + '&page=' + page);
     </script>
+    <!-- BUTTON FUNCS -->
     <script type="text/javascript">
         async function forwardPage() {
-            page++;
-            let uri = `/history?channel=${channel}&page=${page}`;
+            let num = parseInt(page);
+            num++;
+            let uri = `/history?channel=${channel}&page=${num}`;
             window.location.href = uri;
         }
         async function backPage() {
-            page--;
+            let num = parseInt(page);
+            if (page == 0 || page == 1) {
+                return;
+            }
+            num--;
+            let uri = `/history?channel=${channel}&page=${num}`;
+            window.location.href = uri;
+        }
+        async function forwardPage10() {
+            let num = parseInt(page);
+            num += 10;
+            let uri = `/history?channel=${channel}&page=${num}`;
+            window.location.href = uri;
+        }
+        async function backPage10() {
+            let num = parseInt(page);
+            num -= 10;
             if (page === 0) {
                 page = 1;
                 return;
             }
-            let uri = `/history?channel=${channel}&page=${page}`;
+            if (page < 10) {
+                return;
+            }
+            let uri = `/history?channel=${channel}&page=${num}`;
             window.location.href = uri;
         }
     </script>
+    <style>
+        @media screen and (max-width: 900px) {
+
+            #first {
+                order: 2;
+            }
+
+            #second {
+                order: 1;
+            }
+
+        }
+
+        /* @media screen and (min-width: 1024px) {
+
+            .navbar,
+            .navbar-end,
+            .navbar-menu,
+            .navbar-start {
+                align-items: stretch;
+                display: flex;
+            }
+        } */
+        .navbar-start {
+                align-items: stretch!important;
+                display: flex!important;
+            }
+        .card {
+            height: fit-content;
+            border-radius: 6px;
+            background-color: #313131;
+        }
+    </style>
+    <nav class="navbar is-fixed-top is-dark" role="navigation" aria-label="main navigation">
+
+        <div class="navbar-brand has-text-light">
+            <a class="navbar-item has-text-light" href="/">
+                SecVision
+            </a>
+
+            <a role="button" class="navbar-burger has-text-light" aria-label="menu" aria-expanded="false"
+                data-target="pew">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </a>
+        </div>
+        <div id="pew" class="navbar-menu has-background-dark">
+            <ul class="navbar-start">
+                <a class="navbar-item has-text-light" href="/history?channel=101&page=1">Front Lawn</a>
+                <a class="navbar-item has-text-light" href="/history?channel=201&page=1">Front Door</a>
+                <a class="navbar-item has-text-light" href="/history?channel=301&page=1">Driveway</a>
+                <a class="navbar-item has-text-light" href="/history?channel=401&page=1">Side Gate</a>
+                <a class="navbar-item has-text-light" href="/history?channel=501&page=1">Courtyard</a>
+                <a class="navbar-item has-text-light" href="/history?channel=601&page=1">Garage Gate</a>
+                <a class="navbar-item has-text-light" href="/history?channel=701&page=1">Back Lawn</a>
+                <a class="navbar-item has-text-light" href="/history?channel=801&page=1">Pool Area</a>
+            </ul>
+        </div>
+
+    </nav>
     <section class="hero">
         <div class="hero-body">
             <div class="container is-fluid">
-                <div class="columns is-desktop">
+                <div id="first" class="columns">
                     <div class="column">
-                        <div class="card">
-                            <div class="card-image">
-                                <figure class="image is-16by9">
-                                    <a target="_blank" id="c0">
-                                        <img id="0">
-                                    </a>
-                                </figure>
-                            </div>
-
-                        </div>
+                        <button onclick="backPage()" class="button is-small is-info">Prev</button>
+                        <button onclick="backPage10()" class="button is-small is-info">Prev 10</button>
                     </div>
-                    <div class="column">
-                        <div class="card">
-                            <div class="card-image">
-                                <figure class="image is-16by9">
-                                    <a target="_blank" id="c1">
-                                        <img id="1">
-                                    </a>
-                                </figure>
-                            </div>
-
-                        </div>
-                    </div>
-                    <div class="column">
-                        <div class="card">
-                            <div class="card-image">
-                                <figure class="image is-16by9">
-                                    <a target="_blank" id="c2">
-                                        <img id="2">
-                                    </a>
-                                </figure>
-                            </div>
-
-                        </div>
+                    <div class="column has-text-right">
+                        <button onclick="forwardPage10()" class="button is-small is-info">Next 10</button>
+                        <button onclick="forwardPage()" class="button is-small is-info">Next</button>
                     </div>
                 </div>
-
-                <div class="columns is-desktop">
+                <div id="second" class="columns is-desktop">
                     <div class="column">
                         <div class="card">
                             <div class="card-image">
                                 <figure class="image is-16by9">
-                                    <a target="_blank" id="c3">
-                                        <img id="3">
+                                    <a target="_blank" id="p0">
+                                        <img width="640" height="360" id="0">
+                                    </a>
+                                </figure>
+                                <figure class="image is-16by9">
+                                    <a target="_blank" id="p3">
+                                        <img width="640" height="360" id="3">
+                                    </a>
+                                </figure>
+                                <figure class="image is-16by9">
+                                    <a target="_blank" id="p6">
+                                        <img width="640" height="360" id="6">
                                     </a>
                                 </figure>
                             </div>
-
                         </div>
                     </div>
                     <div class="column">
                         <div class="card">
                             <div class="card-image">
                                 <figure class="image is-16by9">
-                                    <a target="_blank" id="c4">
-                                        <img id="4">
+                                    <a target="_blank" id="p1">
+                                        <img width="640" height="360" id="1">
+                                    </a>
+                                </figure>
+                                <figure class="image is-16by9">
+                                    <a target="_blank" id="p4">
+                                        <img width="640" height="360" id="4">
+                                    </a>
+                                </figure>
+                                <figure class="image is-16by9">
+                                    <a target="_blank" id="p7">
+                                        <img width="640" height="360" id="7">
                                     </a>
                                 </figure>
                             </div>
-
                         </div>
                     </div>
-                    <div class="column">
+                    <div class="column is-12-mobile">
                         <div class="card">
                             <div class="card-image">
                                 <figure class="image is-16by9">
-                                    <a target="_blank" id="c5">
-                                        <img id="5">
+                                    <a target="_blank" id="p2">
+                                        <img width="640" height="360" id="2">
                                     </a>
                                 </figure>
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-
-                <div class="columns is-desktop">
-                    <div class="column">
-                        <div class="card">
-                            <div class="card-image">
                                 <figure class="image is-16by9">
-                                    <a target="_blank" id="c6">
-                                        <img id="6">
+                                    <a target="_blank" id="p5">
+                                        <img width="640" height="360" id="5">
                                     </a>
                                 </figure>
-                            </div>
-
-                        </div>
-                    </div>
-                    <div class="column">
-                        <div class="card">
-                            <div class="card-image">
                                 <figure class="image is-16by9">
-                                    <a target="_blank" id="c7">
-                                        <img id="7">
+                                    <a target="_blank" id="p8">
+                                        <img width="640" height="360" id="8">
                                     </a>
                                 </figure>
                             </div>
-
                         </div>
                     </div>
-                    <div class="column">
-                        <div class="card">
-                            <div class="card-image">
-                                <figure class="image is-16by9">
-                                    <a target="_blank" id="c8">
-                                        <img id="8">
-                                    </a>
-                                </figure>
-                            </div>
 
-                        </div>
-                    </div>
-                </div>
-                <div class="columns">
-                    <div class="column is-half">
-                        <button onclick="backPage()" class="button is-medium is-info">Prev</button>
-                    </div>
-                    <div class="column is-half has-text-right">
-                        <button onclick="forwardPage()" class="button is-medium is-info">Next</button>
-                    </div>
                 </div>
             </div>
         </div>

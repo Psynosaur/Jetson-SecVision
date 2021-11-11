@@ -17,6 +17,7 @@ from pathlib import Path
 from PIL import Image
 from tinydb import TinyDB, Query
 import pytz
+from secvision_web import aiohttp_server, run_server
 import sys
 import threading
 import time
@@ -131,11 +132,13 @@ class SecVisionJetson:
     cls_dict = get_cls_dict(args.category_num)
     vis = BBoxVisualization(cls_dict)
     trt_yolo = TrtYOLO(args.model, args.category_num, args.letter_box)
+    
 
     def __init__(self, cfg, db) -> None:
         self.config = cfg
         self.database = db
         self.chcnt = self.config.get('DVR', 'channels')
+        self.DVRip = self.config.get('DVR', 'ip')
         self.od = sorted(self.database.all(), key=lambda k: k['time'])
 
     def session_auth(self):
@@ -154,88 +157,9 @@ class SecVisionJetson:
         heartbeatworker.setDaemon(True)
         heartbeatworker.start()
 
-        webserver = threading.Thread(target=SecVisionJetson.run_server, args=(SecVisionJetson.aiohttp_server(obj),))
+        webserver = threading.Thread(target=run_server, args=(aiohttp_server(obj),))
         webserver.start()
 
-    @staticmethod
-    def aiohttp_server(obj):
-        headers = {
-            'Cache-Control': 'no-cache, max-age=0, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '-1'
-        }
-        def index(request):
-            return web.FileResponse("index.html", headers=headers)
-        
-        def channel_pics(request):
-            return web.FileResponse("channel_info.html")
-
-        def latest_data(request):
-            data = obj.od[-1]
-            return web.json_response(data, headers=headers)
-
-        def latest_pic(request):
-            data = obj.od[-1]
-            return web.FileResponse(f"{data['path']}frame.jpg", headers=headers)
-
-        def previous_pic(request):
-            data = obj.od[-2]
-            return web.FileResponse(f"{data['path']}frame.jpg", headers=headers)
-
-        def channel_info(request):
-            try:
-                ch = '101'
-                ch = request.rel_url.query['id']
-                page = "1"
-                page = request.rel_url.query['page']
-                last_nine = []
-                # obj.od(SecVision Class.od) is sorted by time,
-                data = obj.od
-                cnt = 1
-                page = 1 if int(page) == 0 else int(page)
-                for detection in reversed(data):
-                    if cnt > (9 * page):
-                        break
-                    if detection['channel'] == ch:
-                        last_nine.append(detection)
-                        cnt += 1
-                
-                return web.json_response(last_nine[-9:])
-            except KeyError:
-                pass
-
-        def channel_pic(request):
-            ch = request.rel_url.query['id']
-            lastpic = {}
-            # obj.od(SecVision Class.od) is sorted by time,
-            data = obj.od
-            for detection in reversed(data):
-                if detection['channel'] == ch:
-                    lastpic = detection
-                    break
-            return web.FileResponse(f"{lastpic['path']}frame.jpg", headers=headers)
-
-        webapp = web.Application()
-        webapp.add_routes([web.static('/frames', "../frames", show_index=True, append_version=True)])
-        # webapp.add_routes([web.static('/', "../")])
-        webapp.add_routes([web.get('/', index)])
-        webapp.add_routes([web.get('/latestdata', latest_data)])
-        webapp.add_routes([web.get('/latestpic', latest_pic)])
-        webapp.add_routes([web.get('/prevpic', previous_pic)])
-        webapp.add_routes([web.get('/channel', channel_pic)])
-        webapp.add_routes([web.get('/chaninfo', channel_info)])
-        webapp.add_routes([web.get('/history', channel_pics)])
-        runner = web.AppRunner(webapp)
-        return runner
-
-    @staticmethod
-    def run_server(runner):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(runner.setup())
-        site = web.TCPSite(runner, '0.0.0.0', 8080)
-        loop.run_until_complete(site.start())
-        loop.run_forever()
 
     @staticmethod
     def recorder_thread(event: threading.Event, obj, time: float) -> None:
@@ -254,7 +178,7 @@ class SecVisionJetson:
                     ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal = SecVisionJetson.jetson_metrics()
                     net_speed = sum(obj.network_speed) / len(obj.network_speed)
                     SecVisionJetson.log_metrics(ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal, net_speed)
-                    data = obj.database.all()[-1]
+                    data = obj.od[-1]
                     person = f"{data['persons']} persons" if int(data['persons']) > 1 else f"{data['persons']} person"
                     display_date = data['time'][11:22]
 
@@ -347,7 +271,7 @@ class SecVisionJetson:
     # Starts a recording for a zone when triggered.
     # TODO : Trigger per channel directly, would negate the surveillance center notification...
     async def trigger_zone(self, session, zone, high):
-        url = f"http://{self.config.get('DVR', 'ip')}/ISAPI/System/IO/outputs/{zone}/trigger"
+        url = f"http://{self.DVRip}/ISAPI/System/IO/outputs/{zone}/trigger"
         data = ""
         if high:
             data = xml_on
@@ -363,61 +287,65 @@ class SecVisionJetson:
                         f" Zone {zone} triggered off")
 
     # Network detection
-    async def detect(self, image, trt_yolo, conf_th, vis, channel, session):
+    async def detect(self, image, trt_yolo, conf_th, vis, channel, session, tasks):
         img = image
         boxes, confs, clss = trt_yolo.detect(img, conf_th)
         idx = 0
-        tasks = []
         persons = 0
         # count persons
         for cococlass in clss:
             if cococlass == 0:
                 persons += 1
-        for cococlass in clss:
-            if cococlass == 0 and confs[idx] >= thresholds[channel]:
-                now = datetime.datetime.now()
-                timenow = str(now.replace(tzinfo=pytz.utc))
-                zone = self.determine_zone(channel)
-                msg = await self.zone_activator(channel, session, tasks, zone, confs[idx], persons)
-                logging.warning(msg)
+        if persons > 0 :
+            for cococlass in clss:
+                if cococlass == 0 and confs[idx] >= thresholds[channel]:
+                    now = datetime.datetime.now()
+                    timenow = str(now.replace(tzinfo=pytz.utc))
+                    zone = self.determine_zone(channel)
+                    msg = await self.zone_activator(channel, session, tasks, zone, confs[idx], persons)
+                    logging.warning(msg)
 
-                # Over write latest human timestamp on a given channel
-                self.class_channel_event[channel] = datetime.datetime.timestamp(datetime.datetime.now())
-                # Image saving
-                imgdir = "frames/" + now.strftime('%Y-%m-%d') + "/" + f"{channel}" + "/"
-                wd = os.path.join("../", imgdir)
-                try:
-                    os.makedirs(wd)
-                except FileExistsError:
-                    # directory already exists
-                    pass
-                # Save data
-                drawing = draw[channel]
-                if drawing:
-                    img = vis.draw_bboxes(img, boxes, confs, clss)
-                else:
-                    pass
-                savepath = wd + f"{now.strftime('%H_%M_%S.%f')}_person_"
-                np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_boxes", boxes)
-                np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_confs", confs)
-                np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_clss", clss)
-                cv2.imwrite(savepath + "frame.jpg", img,
-                            [int(cv2.IMWRITE_JPEG_QUALITY), 83])
+                    # Over write latest human timestamp on a given channel
+                    self.class_channel_event[channel] = datetime.datetime.timestamp(datetime.datetime.now())
+                    # Image saving
+                    imgdir = "frames/" + now.strftime('%Y-%m-%d') + "/" + f"{channel}" + "/"
+                    wd = os.path.join("../", imgdir)
+                    try:
+                        os.makedirs(wd)
+                    except FileExistsError:
+                        # directory already exists
+                        pass
+                    # Save data
+                    drawing = draw[channel]
+                    if drawing:
+                        img = vis.draw_bboxes(img, boxes, confs, clss)
+                    else:
+                        pass
+                    start = time.time()
+                    savepath = wd + f"{now.strftime('%H_%M_%S.%f')}_person_"
+                    np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_boxes", boxes)
+                    np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_confs", confs)
+                    np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_clss", clss)
+                    cv2.imwrite(savepath + "frame.jpg", img,
+                                [int(cv2.IMWRITE_JPEG_QUALITY), 83])
+                    end = time.time()
+                    logging.info(f" File save time{(end - start):.2f}s")
+                    start1 = time.time()
+                    self.database.insert({
+                        "time": f"{timenow}",
+                        "persons": str(persons),
+                        "channel": f"{channel}",
+                        "path": f"{savepath}",
+                        "confs": str(confs[idx])
+                    })
+                    end1 = time.time()
+                    logging.info(f" Insert time {(end1 - start1):.2f}s")
+                    self.od = self.database.all()
 
-                self.database.insert({
-                    "time": f"{timenow}",
-                    "persons": str(persons),
-                    "channel": f"{channel}",
-                    "path": f"{savepath}",
-                    "confs": str(confs[idx])
-                }),
-                # self.od = sorted(self.database.all(), key=lambda k: k['time'])
-                self.od = self.database.all()
-                # image_file = Image.open(io.BytesIO(bytes))
-                # image_file.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_frame.jpg")
-                break
-            idx += 1
-        await asyncio.gather(*tasks)
+                    # image_file = Image.open(io.BytesIO(bytes))
+                    # image_file.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_frame.jpg")
+                    break
+                idx += 1
 
     async def zone_activator(self, channel, session, tasks, zone, confidence, persons):
         person = f'{persons} persons' if persons > 1 else f'{persons} person'
@@ -455,13 +383,15 @@ class SecVisionJetson:
             while True:
                 try:
                     start = time.time()
+                    tasks = []
                     channel_frames, timer = await af.get_frames(session, self.config.get('DVR', 'ip'),
                                                                 self.chcnt, self.jpeg)
-
+                    
                     for channel, frame in channel_frames:
                         # detect objects in the image
-                        await self.detect(frame, self.trt_yolo, 0.5, self.vis, channel, session)
+                        await self.detect(frame, self.trt_yolo, 0.65, self.vis, channel, session, tasks)
                     end = time.time()
+                    await asyncio.gather(*tasks)
 
                     for channel in self.class_garbage_collector:
                         await self.trigger_zone(session, self.determine_zone(channel), False)
