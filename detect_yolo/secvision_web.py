@@ -61,7 +61,6 @@ def aiohttp_server(obj):
 
     webapp = web.Application()
     webapp.add_routes([web.static('/frames', "../frames", show_index=True, append_version=True)])
-    # webapp.add_routes([web.static('/', "../")])
     webapp.add_routes([web.get('/', index)])
     webapp.add_routes([web.get('/latestdata', latest_data)])
     webapp.add_routes([web.get('/latestpic', latest_pic)])

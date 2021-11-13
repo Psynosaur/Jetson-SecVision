@@ -139,7 +139,7 @@ class SecVisionJetson:
         self.database = db
         self.chcnt = self.config.get('DVR', 'channels')
         self.DVRip = self.config.get('DVR', 'ip')
-        self.od = sorted(self.database.all(), key=lambda k: k['time'])
+        self.dbObj = self.database.all()
 
     def session_auth(self):
         authkey = f"{self.config.get('DVR', 'username')}:{self.config.get('DVR', 'password')}"
@@ -178,7 +178,7 @@ class SecVisionJetson:
                     ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal = SecVisionJetson.jetson_metrics()
                     net_speed = sum(obj.network_speed) / len(obj.network_speed)
                     SecVisionJetson.log_metrics(ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal, net_speed)
-                    data = obj.od[-1]
+                    data = obj.dbObj[-1]
                     person = f"{data['persons']} persons" if int(data['persons']) > 1 else f"{data['persons']} person"
                     display_date = data['time'][11:22]
 
@@ -289,7 +289,11 @@ class SecVisionJetson:
     # Network detection
     async def detect(self, image, trt_yolo, conf_th, vis, channel, session, tasks):
         img = image
+        start = time.time()
         boxes, confs, clss = trt_yolo.detect(img, conf_th)
+        end = time.time()
+        if end - start > 0.19:
+            logging.info(f" {channel_names[channel]} Detection time slow - {(end - start):.2f}s")
         idx = 0
         persons = 0
         # count persons
@@ -340,7 +344,7 @@ class SecVisionJetson:
                     })
                     end1 = time.time()
                     logging.info(f" Insert time {(end1 - start1):.2f}s")
-                    self.od = self.database.all()
+                    self.dbObj = self.database.all()
 
                     # image_file = Image.open(io.BytesIO(bytes))
                     # image_file.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_frame.jpg")
