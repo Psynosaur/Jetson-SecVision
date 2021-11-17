@@ -15,12 +15,13 @@ import numpy as np
 import os
 from pathlib import Path
 from PIL import Image
-from tinydb import TinyDB, Query
 import pytz
+import redis
 from secvision_web import aiohttp_server, run_server
 import sys
 import threading
 import time
+# from tinydb import TinyDB, Query
 from turbojpeg import TurboJPEG
 
 # determine user home directory
@@ -33,7 +34,6 @@ sys.path.append(tensorRT)
 import pycuda.autoinit  # This is needed for initializing CUDA driver
 
 from yolo_classes import get_cls_dict
-from display import open_window, set_display, show_fps
 from visualization import BBoxVisualization
 from yolo_with_plugins import TrtYOLO
 
@@ -134,12 +134,12 @@ class SecVisionJetson:
     trt_yolo = TrtYOLO(args.model, args.category_num, args.letter_box)
     
 
-    def __init__(self, cfg, db) -> None:
+    def __init__(self, cfg, redis) -> None:
         self.config = cfg
-        self.database = db
+        self.redisDb = redis
         self.chcnt = self.config.get('DVR', 'channels')
         self.DVRip = self.config.get('DVR', 'ip')
-        self.dbObj = self.database.all()
+        # self.dbObj = self.database.all()
 
     def session_auth(self):
         authkey = f"{self.config.get('DVR', 'username')}:{self.config.get('DVR', 'password')}"
@@ -178,12 +178,12 @@ class SecVisionJetson:
                     ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal = SecVisionJetson.jetson_metrics()
                     net_speed = sum(obj.network_speed) / len(obj.network_speed)
                     SecVisionJetson.log_metrics(ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal, net_speed)
-                    data = obj.dbObj[-1]
-                    person = f"{data['persons']} persons" if int(data['persons']) > 1 else f"{data['persons']} person"
-                    display_date = data['time'][11:22]
+                    # data = obj.dbObj[-1]
+                    # person = f"{data['persons']} persons" if int(data['persons']) > 1 else f"{data['persons']} person"
+                    # display_date = data['time'][11:22]
 
-                    logging.info(
-                        f" Last Detection : {display_date}: {channel_names[data['channel']]} -> {person} found")
+                    # logging.info(
+                    #     f" Last Detection : {display_date}: {channel_names[data['channel']]} -> {person} found")
                 if len(obj.class_channel_event) > 0:
                     for channel in obj.class_channel_event:
                         if float(obj.class_channel_event[channel]) > 0:
@@ -334,18 +334,29 @@ class SecVisionJetson:
                                 [int(cv2.IMWRITE_JPEG_QUALITY), 83])
                     end = time.time()
                     logging.info(f" File save time{(end - start):.2f}s")
-                    start1 = time.time()
-                    self.database.insert({
+                    
+                    data = {
                         "time": f"{timenow}",
                         "persons": str(persons),
                         "channel": f"{channel}",
                         "path": f"{savepath}",
                         "confs": str(confs[idx])
-                    })
-                    end1 = time.time()
-                    logging.info(f" Insert time {(end1 - start1):.2f}s")
-                    self.dbObj = self.database.all()
+                    }
+                    # start1 = time.time()
+                    # self.database.insert(data)
+                    # end1 = time.time()
+                    # logging.info(f" Insert time {(end1 - start1):.2f}s")
 
+                    # start2 = time.time()
+                    # self.dbObj = self.database.all()
+                    # end2 = time.time()
+                    # logging.info(f" Sort time {(end2 - start2):.2f}s")
+                    
+                    start3 = time.time()
+                    self.redisDb.rpush(data['channel'], json.dumps(data))
+                    end3 = time.time()
+                    logging.info(f" Redis time {(end3 - start3):.2f}s")
+                    
                     # image_file = Image.open(io.BytesIO(bytes))
                     # image_file.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_frame.jpg")
                     break
@@ -377,7 +388,7 @@ class SecVisionJetson:
         return msg
 
     async def cleanstart(self, session, zone):
-        await self.trigger_zone(session, zone, False)
+        await self.trigger_zone(session, zone, False)        
 
     # The main loop
     async def main(self):
@@ -420,8 +431,8 @@ if __name__ == '__main__':
     config = configparser.ConfigParser()
     config.read(settings)
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
-    database = TinyDB('./db.json')
-    app = SecVisionJetson(config, database)
+    redisDb = redis.Redis(host='localhost', port=6379, db=0)
+    app = SecVisionJetson(config, redisDb)
     SecVisionJetson.initworkers(app)
     loop = asyncio.get_event_loop()
     result = loop.run_until_complete(app.main())

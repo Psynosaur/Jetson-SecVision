@@ -21,9 +21,9 @@ Technologies used
 
 ## To Do 
 
-  - [x] Add database for stats (added TinyDB)
-    - [ ] Tables per channel
-    - [ ] Change database 
+  - [x] Add database for detections (~~added TinyDB~~)
+    - [x] Redis list per channel
+    - [x] Change database to redis
   - [x] Add web api
   - [x] Add dashboard
   - [ ] make the code neater?

@@ -141,6 +141,12 @@
 
         }
 
+        @media screen and (min-width: 1408px) {
+            .container:not(.is-max-desktop):not(.is-max-widescreen) {
+                max-width: 1800px;
+            }
+        }
+
         /* @media screen and (min-width: 1024px) {
 
             .navbar,
@@ -152,9 +158,10 @@
             }
         } */
         .navbar-start {
-                align-items: stretch!important;
-                display: flex!important;
-            }
+            align-items: stretch !important;
+            display: flex !important;
+        }
+
         .card {
             height: fit-content;
             border-radius: 6px;
@@ -189,36 +196,17 @@
         </div>
 
     </nav>
-    <section class="hero">
+    <section class="hero is-fullheight-with-navbar is-fullwidth">
         <div class="hero-body">
-            <div class="container is-fluid">
-                <div id="first" class="columns">
-                    <div class="column">
-                        <button onclick="backPage()" class="button is-small is-info">Prev</button>
-                        <button onclick="backPage10()" class="button is-small is-info">Prev 10</button>
-                    </div>
-                    <div class="column has-text-right">
-                        <button onclick="forwardPage10()" class="button is-small is-info">Next 10</button>
-                        <button onclick="forwardPage()" class="button is-small is-info">Next</button>
-                    </div>
-                </div>
-                <div id="second" class="columns is-desktop">
+            <div class="container m-auto">
+
+                <div class="columns is-desktop">
                     <div class="column">
                         <div class="card">
                             <div class="card-image">
                                 <figure class="image is-16by9">
                                     <a target="_blank" id="p0">
                                         <img width="640" height="360" id="0">
-                                    </a>
-                                </figure>
-                                <figure class="image is-16by9">
-                                    <a target="_blank" id="p3">
-                                        <img width="640" height="360" id="3">
-                                    </a>
-                                </figure>
-                                <figure class="image is-16by9">
-                                    <a target="_blank" id="p6">
-                                        <img width="640" height="360" id="6">
                                     </a>
                                 </figure>
                             </div>
@@ -232,11 +220,71 @@
                                         <img width="640" height="360" id="1">
                                     </a>
                                 </figure>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="card">
+                            <div class="card-image">
+                                <figure class="image is-16by9">
+                                    <a target="_blank" id="p2">
+                                        <img width="640" height="360" id="2">
+                                    </a>
+                                </figure>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="columns is-desktop">
+                    <div class="column">
+                        <div class="card">
+                            <div class="card-image">
+                                <figure class="image is-16by9">
+                                    <a target="_blank" id="p3">
+                                        <img width="640" height="360" id="3">
+                                    </a>
+                                </figure>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="card">
+                            <div class="card-image">
                                 <figure class="image is-16by9">
                                     <a target="_blank" id="p4">
                                         <img width="640" height="360" id="4">
                                     </a>
                                 </figure>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="card">
+                            <div class="card-image">
+                                <figure class="image is-16by9">
+                                    <a target="_blank" id="p5">
+                                        <img width="640" height="360" id="5">
+                                    </a>
+                                </figure>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="columns is-desktop">
+                    <div class="column">
+                        <div class="card">
+                            <div class="card-image">
+                                <figure class="image is-16by9">
+                                    <a target="_blank" id="p6">
+                                        <img width="640" height="360" id="6">
+                                    </a>
+                                </figure>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="card">
+                            <div class="card-image">
                                 <figure class="image is-16by9">
                                     <a target="_blank" id="p7">
                                         <img width="640" height="360" id="7">
@@ -245,19 +293,9 @@
                             </div>
                         </div>
                     </div>
-                    <div class="column is-12-mobile">
+                    <div class="column">
                         <div class="card">
                             <div class="card-image">
-                                <figure class="image is-16by9">
-                                    <a target="_blank" id="p2">
-                                        <img width="640" height="360" id="2">
-                                    </a>
-                                </figure>
-                                <figure class="image is-16by9">
-                                    <a target="_blank" id="p5">
-                                        <img width="640" height="360" id="5">
-                                    </a>
-                                </figure>
                                 <figure class="image is-16by9">
                                     <a target="_blank" id="p8">
                                         <img width="640" height="360" id="8">
@@ -266,10 +304,23 @@
                             </div>
                         </div>
                     </div>
+                </div>
 
+            </div>
+        </div>
+        <div class="hero-foot ">
+            <div class="columns">
+                <div class="column ">
+                    <button onclick="backPage()" class="button is-small is-info">Prev</button>
+                    <button onclick="backPage10()" class="button is-small is-info">Prev 10</button>
+                </div>
+                <div class="column has-text-right">
+                    <button onclick="forwardPage10()" class="button is-small is-info">Next 10</button>
+                    <button onclick="forwardPage()" class="button is-small is-info">Next</button>
                 </div>
             </div>
         </div>
+
     </section>
 </body>
 
