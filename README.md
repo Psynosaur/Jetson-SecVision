@@ -9,8 +9,10 @@ Technologies used
 ### Prerequisites 
 
   - **PLEASE BUILD THIS PROJECT FIRST**
-  - https://github.com/jkjung-avt/tensorrt_demos
-  - Environment is ready when Demo #5 runs with yolov4-416 model
+    - https://github.com/jkjung-avt/tensorrt_demos
+    - Environment is ready when Demo #5 runs with yolov4-416 model
+  - Running redis instance 
+    - https://redis.io/topics/quickstart
     
 ### Goals
 
@@ -29,10 +31,6 @@ Technologies used
   - [ ] make the code neater?
   - [ ] Make it not use AlarmIO to trigger events (zoneless operation)
  
-### Prerequisites 
-
-  - local redis server instance
-
  ### Usage
 
    Setup settings.ini
@@ -46,7 +44,7 @@ Technologies used
    On DVR set basic auth for HTTP request
    
     git clone https://github.com/Psynosaur/JetsonSecVision && cd JetsonSecVision
-    pip3 install aiofiles aiohttp asyncio colorlog redis
+    pip3 install aiofiles aiohttp asyncio colorlog tinydb
 
    ### Project needs symlinks to tensorrt_demo project
    #### Setup environment
