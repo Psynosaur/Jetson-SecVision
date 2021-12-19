@@ -23,12 +23,7 @@ Technologies used
 
 ## To Do 
 
-  - [x] Add database for detections (~~added TinyDB~~)
-    - [x] Redis list per channel
-    - [x] Change database to redis
-  - [x] Add web api
-  - [x] Add dashboard
-  - [ ] make the code neater?
+  - [x] make the code neater?
   - [ ] Make it not use AlarmIO to trigger events (zoneless operation)
  
  ### Usage

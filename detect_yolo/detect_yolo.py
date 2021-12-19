@@ -6,7 +6,6 @@ import base64
 import configparser
 import cv2
 import datetime
-# import httpx
 import json
 import logging
 import numpy as np
@@ -104,8 +103,8 @@ draw = {
 class SecVisionJetson:
     channel_frames = []
     cnt = 0
-    class_channel_event = {}
-    class_garbage_collector = []
+    sv_channel_event = {}
+    sv_garbage_collector = []
     zone1 = {}
     zone2 = {}
     zone3 = {}
@@ -122,7 +121,6 @@ class SecVisionJetson:
         self.redisDb = redis
         self.chcnt = self.config.get('DVR', 'channels')
         self.DVRip = self.config.get('DVR', 'ip')
-        # self.dbObj = self.database.all()
 
     def session_auth(self):
         authkey = f"{self.config.get('DVR', 'username')}:{self.config.get('DVR', 'password')}"
@@ -170,17 +168,22 @@ class SecVisionJetson:
     # Network detection
     async def detect(self, image, trt_yolo, conf_th, vis, channel, session, tasks):
         img = image
-        start = time.time()
+        
+        # measure detection time
+        detection_timer = time.time()
         boxes, confs, clss = trt_yolo.detect(img, conf_th)
         end = time.time()
-        if end - start > 0.19:
-            logging.info(f" {channel_names[channel]} Detection time slow - {(end - start):.2f}s")
+        if end - detection_timer > 0.19:
+            logging.info(f" {channel_names[channel]} Detection time slow - {(end - detection_timer):.2f}s")
+            
+        # count persons    
         idx = 0
         persons = 0
-        # count persons
         for cococlass in clss:
             if cococlass == 0:
                 persons += 1
+                
+        # Do work when person is found
         if persons > 0 :
             for cococlass in clss:
                 if cococlass == 0 and confs[idx] >= thresholds[channel]:
@@ -190,8 +193,9 @@ class SecVisionJetson:
                     msg = await self.zone_activator(channel, session, tasks, zone, confs[idx], persons)
                     logging.warning(msg)
 
-                    # Over write latest human timestamp on a given channel
-                    self.class_channel_event[channel] = datetime.datetime.timestamp(datetime.datetime.now())
+                    # Overwrite latest human timestamp on a given channel
+                    self.sv_channel_event[channel] = datetime.datetime.timestamp(datetime.datetime.now())
+                    
                     # Image saving
                     imgdir = "frames/" + now.strftime('%Y-%m-%d') + "/" + f"{channel}" + "/"
                     wd = os.path.join("../", imgdir)
@@ -200,13 +204,14 @@ class SecVisionJetson:
                     except FileExistsError:
                         # directory already exists
                         pass
-                    # Save data
+                    
+                    # IO data saving
                     drawing = draw[channel]
                     if drawing:
                         img = vis.draw_bboxes(img, boxes, confs, clss)
                     else:
                         pass
-                    start = time.time()
+                    filesave_timer = time.time()
                     savepath = wd + f"{now.strftime('%H_%M_%S.%f')}_person_"
                     np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_boxes", boxes)
                     np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_confs", confs)
@@ -214,60 +219,51 @@ class SecVisionJetson:
                     cv2.imwrite(savepath + "frame.jpg", img,
                                 [int(cv2.IMWRITE_JPEG_QUALITY), 83])
                     end = time.time()
-                    logging.info(f" File save time{(end - start):.2f}s")
+                    logging.info(f" File save time{(end - filesave_timer):.2f}s")
                     
+                    # DB data saving
                     data = {
                         "time": f"{timenow}",
                         "persons": str(persons),
                         "channel": f"{channel}",
                         "path": f"{savepath}",
                         "confs": str(confs[idx])
-                    }
-                    # start1 = time.time()
-                    # self.database.insert(data)
-                    # end1 = time.time()
-                    # logging.info(f" Insert time {(end1 - start1):.2f}s")
-
-                    # start2 = time.time()
-                    # self.dbObj = self.database.all()
-                    # end2 = time.time()
-                    # logging.info(f" Sort time {(end2 - start2):.2f}s")
-                    
-                    start3 = time.time()
+                    }      
+                    start_time = time.time()
                     self.redisDb.rpush(data['channel'], json.dumps(data))
-                    end3 = time.time()
-                    logging.info(f" Redis time {(end3 - start3):.2f}s")
-                    
-                    # image_file = Image.open(io.BytesIO(bytes))
-                    # image_file.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_frame.jpg")
+                    end_time = time.time()
+                    logging.info(f" Redis time {(end_time - start_time):.2f}s")
                     break
                 idx += 1
-
+                
+    # returns message and adds trigger_zone task to the task list
     async def zone_activator(self, channel, session, tasks, zone, confidence, persons):
-        person = f'{persons} persons' if persons > 1 else f'{persons} person'
-        msg = f" {channel_names[channel]} - {confidence:.2f} - {person} found in zone {zone} - recording"
+        person_counter = f'{persons} persons' if persons > 1 else f'{persons} person'
+        msg = f" {channel_names[channel]} - {confidence:.2f} - {person_counter} found in zone {zone} - recording"
         if zone == 1:
             if len(self.zone1) == 0:
-                msg = f" {channel_names[channel]} - {confidence:.2f} - {person} found in zone {zone} - start recording"
+                msg = f" {channel_names[channel]} - {confidence:.2f} - {person_counter} found in zone {zone} - start recording"
                 tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
             self.zone1[channel] = channel
         elif zone == 2:
             if len(self.zone2) == 0:
-                msg = f" {channel_names[channel]} - {confidence:.2f} - {person} found in zone {zone} - start recording"
+                msg = f" {channel_names[channel]} - {confidence:.2f} - {person_counter} found in zone {zone} - start recording"
                 tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
             self.zone2[channel] = channel
         elif zone == 3:
             if len(self.zone3) == 0:
-                msg = f" {channel_names[channel]} - {confidence:.2f} - {person} found in zone {zone} - start recording"
+                msg = f" {channel_names[channel]} - {confidence:.2f} - {person_counter} found in zone {zone} - start recording"
                 tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
             self.zone3[channel] = channel
         else:
             if len(self.zone4) == 0:
-                msg = f" {channel_names[channel]} - {confidence:.2f} - {person} found in zone {zone} - start recording"
+                msg = f" {channel_names[channel]} - {confidence:.2f} - {person_counter} found in zone {zone} - start recording"
                 tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
             self.zone4[channel] = channel
         return msg
 
+    # There might be some reason the triggers might be high?
+    # so we start fresh and set them low
     async def cleanstart(self, session, zone):
         await self.trigger_zone(session, zone, False)        
 
@@ -275,45 +271,54 @@ class SecVisionJetson:
     async def main(self):
         conn = aiohttp.TCPConnector(limit=None, ttl_dns_cache=300)
         async with aiohttp.ClientSession(headers=self.session_auth(), connector=conn) as session:
-            # async with httpx.AsyncClient(headers=self.session_auth()) as client:
             for i in range(1, 5):
                 await self.cleanstart(session, i)
             while True:
                 try:
-                    start = time.time()
+                    mainloop_timer = time.time()
                     tasks = []
+                    
+                    # GET data frames
                     channel_frames, timer = await af.get_frames(session, self.config.get('DVR', 'ip'),
                                                                 self.chcnt, self.jpeg)
                     
+                    # Inference tasks on received frames
                     for channel, frame in channel_frames:
                         # detect objects in the image
                         await self.detect(frame, self.trt_yolo, 0.65, self.vis, channel, session, tasks)
                     end = time.time()
                     await asyncio.gather(*tasks)
 
-                    for channel in self.class_garbage_collector:
+                    # See if there was any background work to be done if not resest the gc
+                    for channel in self.sv_garbage_collector:
                         await self.trigger_zone(session, self.determine_zone(channel), False)
-                    self.class_garbage_collector = []
-                    self.network_speed.append(int(self.chcnt) / (end - start - timer))
-                    # keeps the network average array nice and small
+                    self.sv_garbage_collector = []
+                    
+                    # Keep an average of our network speed and only use upto 128 values
+                    self.network_speed.append(int(self.chcnt) / (end - mainloop_timer - timer))
                     if len(self.network_speed) > 128:
                         for i in range(0, 65):
                             self.network_speed.pop(0)
-
-                    logging.info(f" Inference loop - {(end - start - timer):.2f}s @ {int(self.chcnt) / (end - start - timer):.2f}fps")
+                            
+                    mainloop_end_timer = time.time()
+                    logging.info(f" Main loop - {(mainloop_end_timer - mainloop_timer):.2f}s Inference loop - {(end - mainloop_timer - timer):.2f}s @ {int(self.chcnt) / (end - mainloop_timer - timer):.2f}fps")
                 except:
+                    # we don't really care if it breaks, just try again...
                     logging.info(f" ERROR")
                     pass
 
 
 if __name__ == '__main__':
     cwd = os.path.dirname(os.path.abspath(__file__))
-    settings = os.path.join("../", cwd, 'settings.ini')
-    # print(settings)
+    # Settings
+    settings = os.path.join(cwd, 'settings.ini')
     config = configparser.ConfigParser()
     config.read(settings)
+    # Logging
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+    # DB
     redisDb = redis.Redis(host='localhost', port=6379, db=0)
+    # App
     app = SecVisionJetson(config, redisDb)
     initworkers(app)
     loop = asyncio.get_event_loop()

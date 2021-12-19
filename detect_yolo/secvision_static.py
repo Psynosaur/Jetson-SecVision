@@ -50,11 +50,11 @@ def recorder_thread(event: threading.Event, obj, time: float) -> None:
 
                 # logging.info(
                 #     f" Last Detection : {display_date}: {channel_names[data['channel']]} -> {person} found")
-            if len(obj.class_channel_event) > 0:
-                for channel in obj.class_channel_event:
-                    if float(obj.class_channel_event[channel]) > 0:
+            if len(obj.sv_channel_event) > 0:
+                for channel in obj.sv_channel_event:
+                    if float(obj.sv_channel_event[channel]) > 0:
                         elapsed = datetime.datetime.now() - datetime.datetime.fromtimestamp(
-                            obj.class_channel_event[channel])
+                            obj.sv_channel_event[channel])
                         logging.warning(
                             f" {channel_names[channel]} person found {elapsed.total_seconds()}s ago")
 
@@ -86,11 +86,11 @@ def recorder_thread(event: threading.Event, obj, time: float) -> None:
                                 obj.zone4.pop(channel, None)
 
                 for channel in thread_channel_done_event:
-                    obj.class_channel_event.pop(channel, None)
+                    obj.sv_channel_event.pop(channel, None)
 
                 for channel in thread_zone_garbage_collector:
-                    obj.class_channel_event.pop(channel, None)
-                    obj.class_garbage_collector.append(channel)
+                    obj.sv_channel_event.pop(channel, None)
+                    obj.sv_garbage_collector.append(channel)
 
 
 def log_metrics(ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal, net):
