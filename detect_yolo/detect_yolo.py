@@ -114,7 +114,6 @@ class SecVisionJetson:
     cls_dict = get_cls_dict(args.category_num)
     vis = BBoxVisualization(cls_dict)
     trt_yolo = TrtYOLO(args.model, args.category_num, args.letter_box)
-    
 
     def __init__(self, cfg, redis) -> None:
         self.config = cfg
@@ -129,7 +128,7 @@ class SecVisionJetson:
         auth = base64_bytes.decode('ascii')
         headers = {"Authorization": f"Basic {auth}"}
         return headers
-    
+
     # DVR has 4 Alarm Output ports, they are electrically connected like so :
     # => Output 1 to Inputs 1 and 2
     # => Output 2 to Inputs 3 and 4
@@ -168,23 +167,23 @@ class SecVisionJetson:
     # Network detection
     async def detect(self, image, trt_yolo, conf_th, vis, channel, session, tasks):
         img = image
-        
+
         # measure detection time
         detection_timer = time.time()
         boxes, confs, clss = trt_yolo.detect(img, conf_th)
         end = time.time()
         if end - detection_timer > 0.19:
             logging.info(f" {channel_names[channel]} Detection time slow - {(end - detection_timer):.2f}s")
-            
-        # count persons    
+
+        # count persons
         idx = 0
         persons = 0
         for cococlass in clss:
             if cococlass == 0:
                 persons += 1
-                
+
         # Do work when person is found
-        if persons > 0 :
+        if persons > 0:
             for cococlass in clss:
                 if cococlass == 0 and confs[idx] >= thresholds[channel]:
                     now = datetime.datetime.now()
@@ -193,49 +192,54 @@ class SecVisionJetson:
                     msg = await self.zone_activator(channel, session, tasks, zone, confs[idx], persons)
                     logging.warning(msg)
 
-                    # Overwrite latest human timestamp on a given channel
-                    self.sv_channel_event[channel] = datetime.datetime.timestamp(datetime.datetime.now())
-                    
-                    # Image saving
-                    imgdir = "frames/" + now.strftime('%Y-%m-%d') + "/" + f"{channel}" + "/"
-                    wd = os.path.join("../", imgdir)
-                    try:
-                        os.makedirs(wd)
-                    except FileExistsError:
-                        # directory already exists
-                        pass
-                    
-                    # IO data saving
-                    drawing = draw[channel]
-                    if drawing:
-                        img = vis.draw_bboxes(img, boxes, confs, clss)
+                    if channel in self.sv_channel_event:
+                        logging.info(f"{channel} event exists")
+                        # Overwrite latest human timestamp on a given channel
+                        self.sv_channel_event[channel] = datetime.datetime.timestamp(datetime.datetime.now())
+                        break
                     else:
-                        pass
-                    filesave_timer = time.time()
-                    savepath = wd + f"{now.strftime('%H_%M_%S.%f')}_person_"
-                    np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_boxes", boxes)
-                    np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_confs", confs)
-                    np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_clss", clss)
-                    cv2.imwrite(savepath + "frame.jpg", img,
-                                [int(cv2.IMWRITE_JPEG_QUALITY), 83])
-                    end = time.time()
-                    logging.info(f" File save time{(end - filesave_timer):.2f}s")
-                    
-                    # DB data saving
-                    data = {
-                        "time": f"{timenow}",
-                        "persons": str(persons),
-                        "channel": f"{channel}",
-                        "path": f"{savepath}",
-                        "confs": str(confs[idx])
-                    }      
-                    start_time = time.time()
-                    self.redisDb.rpush(data['channel'], json.dumps(data))
-                    end_time = time.time()
-                    logging.info(f" Redis time {(end_time - start_time):.2f}s")
-                    break
+                        # Overwrite latest human timestamp on a given channel
+                        self.sv_channel_event[channel] = datetime.datetime.timestamp(datetime.datetime.now())
+                        # Image saving
+                        imgdir = "frames/" + now.strftime('%Y-%m-%d') + "/" + f"{channel}" + "/"
+                        wd = os.path.join("../", imgdir)
+                        try:
+                            os.makedirs(wd)
+                        except FileExistsError:
+                            # directory already exists
+                            pass
+
+                        # IO data saving
+                        drawing = draw[channel]
+                        if drawing:
+                            img = vis.draw_bboxes(img, boxes, confs, clss)
+                        else:
+                            pass
+                        filesave_timer = time.time()
+                        savepath = wd + f"{now.strftime('%H_%M_%S.%f')}_person_"
+                        np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_boxes", boxes)
+                        np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_confs", confs)
+                        np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_clss", clss)
+                        cv2.imwrite(savepath + "frame.jpg", img,
+                                    [int(cv2.IMWRITE_JPEG_QUALITY), 83])
+                        end = time.time()
+                        logging.info(f" File save time{(end - filesave_timer):.2f}s")
+
+                        # DB data saving
+                        data = {
+                            "time": f"{timenow}",
+                            "persons": str(persons),
+                            "channel": f"{channel}",
+                            "path": f"{savepath}",
+                            "confs": str(confs[idx])
+                        }
+                        start_time = time.time()
+                        self.redisDb.rpush(data['channel'], json.dumps(data))
+                        end_time = time.time()
+                        logging.info(f" Redis time {(end_time - start_time):.2f}s")
+                        break
                 idx += 1
-                
+
     # returns message and adds trigger_zone task to the task list
     async def zone_activator(self, channel, session, tasks, zone, confidence, persons):
         person_counter = f'{persons} persons' if persons > 1 else f'{persons} person'
@@ -265,9 +269,10 @@ class SecVisionJetson:
     # There might be some reason the triggers might be high?
     # so we start fresh and set them low
     async def cleanstart(self, session, zone):
-        await self.trigger_zone(session, zone, False)        
+        await self.trigger_zone(session, zone, False)
 
-    # The main loop
+        # The main loop
+
     async def main(self):
         conn = aiohttp.TCPConnector(limit=None, ttl_dns_cache=300)
         async with aiohttp.ClientSession(headers=self.session_auth(), connector=conn) as session:
@@ -277,11 +282,11 @@ class SecVisionJetson:
                 try:
                     mainloop_timer = time.time()
                     tasks = []
-                    
+
                     # GET data frames
                     channel_frames, timer = await af.get_frames(session, self.config.get('DVR', 'ip'),
                                                                 self.chcnt, self.jpeg)
-                    
+
                     # Inference tasks on received frames
                     for channel, frame in channel_frames:
                         # detect objects in the image
@@ -293,15 +298,16 @@ class SecVisionJetson:
                     for channel in self.sv_garbage_collector:
                         await self.trigger_zone(session, self.determine_zone(channel), False)
                     self.sv_garbage_collector = []
-                    
+
                     # Keep an average of our network speed and only use upto 128 values
                     self.network_speed.append(int(self.chcnt) / (end - mainloop_timer - timer))
                     if len(self.network_speed) > 128:
                         for i in range(0, 65):
                             self.network_speed.pop(0)
-                            
+
                     mainloop_end_timer = time.time()
-                    logging.info(f" Main loop - {(mainloop_end_timer - mainloop_timer):.2f}s Inference loop - {(end - mainloop_timer - timer):.2f}s @ {int(self.chcnt) / (end - mainloop_timer - timer):.2f}fps")
+                    logging.info(
+                        f" Main loop - {(mainloop_end_timer - mainloop_timer):.2f}s Inference loop - {(end - mainloop_timer - timer):.2f}s @ {int(self.chcnt) / (end - mainloop_timer - timer):.2f}fps")
                 except:
                     # we don't really care if it breaks, just try again...
                     logging.info(f" ERROR")
