@@ -5,7 +5,7 @@ import async_frames_cv_v2 as af
 import base64
 import configparser
 import cv2
-import datetime
+import datetime as dt
 import json
 import logging
 import numpy as np
@@ -48,7 +48,7 @@ log.addHandler(stream)
 
 def parse_args():
     """Parse input arguments."""
-    desc = ('Detect persons on HTTP pictures from HikVision DVR')
+    desc = 'Detect persons on HTTP pictures from HikVision DVR'
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument(
         '-c', '--category_num', type=int, default=80,
@@ -115,14 +115,16 @@ class SecVisionJetson:
     vis = BBoxVisualization(cls_dict)
     trt_yolo = TrtYOLO(args.model, args.category_num, args.letter_box)
 
-    def __init__(self, cfg, redis) -> None:
+    def __init__(self, cfg, redis, session) -> None:
         self.config = cfg
         self.redisDb = redis
+        self.session = session
         self.chcnt = self.config.get('DVR', 'channels')
         self.DVRip = self.config.get('DVR', 'ip')
 
-    def session_auth(self):
-        authkey = f"{self.config.get('DVR', 'username')}:{self.config.get('DVR', 'password')}"
+    @staticmethod
+    def session_auth(app_cfg):
+        authkey = f"{app_cfg.get('DVR', 'username')}:{app_cfg.get('DVR', 'password')}"
         auth_bytes = authkey.encode('ascii')
         base64_bytes = base64.b64encode(auth_bytes)
         auth = base64_bytes.decode('ascii')
@@ -146,23 +148,36 @@ class SecVisionJetson:
             zone = 4
         return zone
 
-    # Starts a recording for a zone when triggered.
-    # TODO : Trigger per channel directly, would negate the surveillance center notification...
-    async def trigger_zone(self, session, zone, high):
-        url = f"http://{self.DVRip}/ISAPI/System/IO/outputs/{zone}/trigger"
-        data = ""
-        if high:
-            data = xml_on
+    # Starts a recording for a zone or channel when triggered.
+    # TODO : Send surveillance center notification...
+    async def trigger_zone(self, session, zone, high, channel="", record=False):
+        url = ""
+        if len(channel) > 2:
+            if record:
+                url = f"http://{self.DVRip}/ISAPI/ContentMgmt/record/control/manual/start/tracks/{channel}"
+            else:
+                url = f"http://{self.DVRip}/ISAPI/ContentMgmt/record/control/manual/stop/tracks/{channel}"
+            async with session.put(url) as response:
+                if response.status == 200:
+                    if high:
+                        logging.warning(f" {channel} started recording")
+                    else:
+                        logging.warning(f" {channel} stopped recording")
         else:
-            data = xml_off
-        async with session.put(url, data=data) as response:
-            if response.status == 200:
-                if high:
-                    logging.warning(
-                        f" Zone {zone} triggered on")
-                else:
-                    logging.warning(
-                        f" Zone {zone} triggered off")
+            url = f"http://{self.DVRip}/ISAPI/System/IO/outputs/{zone}/trigger"
+            data = ""
+            if high:
+                data = xml_on
+            else:
+                data = xml_off
+            async with session.put(url, data=data) as response:
+                if response.status == 200:
+                    if high:
+                        logging.warning(
+                            f" Zone {zone} triggered on")
+                    else:
+                        logging.warning(
+                            f" Zone {zone} triggered off")
 
     # Network detection
     async def detect(self, image, trt_yolo, conf_th, vis, channel, session, tasks):
@@ -186,7 +201,7 @@ class SecVisionJetson:
         if persons > 0:
             for cococlass in clss:
                 if cococlass == 0 and confs[idx] >= thresholds[channel]:
-                    now = datetime.datetime.now()
+                    now = dt.datetime.now()
                     timenow = str(now.replace(tzinfo=pytz.utc))
                     zone = self.determine_zone(channel)
                     msg = await self.zone_activator(channel, session, tasks, zone, confs[idx], persons)
@@ -195,11 +210,11 @@ class SecVisionJetson:
                     if channel in self.sv_channel_event:
                         logging.info(f"{channel} event exists")
                         # Overwrite latest human timestamp on a given channel
-                        self.sv_channel_event[channel] = datetime.datetime.timestamp(datetime.datetime.now())
+                        self.sv_channel_event[channel] = dt.datetime.timestamp(dt.datetime.now())
                         break
                     else:
                         # Overwrite latest human timestamp on a given channel
-                        self.sv_channel_event[channel] = datetime.datetime.timestamp(datetime.datetime.now())
+                        self.sv_channel_event[channel] = dt.datetime.timestamp(dt.datetime.now())
                         # Image saving
                         imgdir = "frames/" + now.strftime('%Y-%m-%d') + "/" + f"{channel}" + "/"
                         wd = os.path.join("../", imgdir)
@@ -247,22 +262,26 @@ class SecVisionJetson:
         if zone == 1:
             if len(self.zone1) == 0:
                 msg = f" {channel_names[channel]} - {confidence:.2f} - {person_counter} found in zone {zone} - start recording"
-                tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
+                # USE => self.trigger_zone(session, zone, True) for zone mode...
+                tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, False, channel, True)))
             self.zone1[channel] = channel
         elif zone == 2:
             if len(self.zone2) == 0:
                 msg = f" {channel_names[channel]} - {confidence:.2f} - {person_counter} found in zone {zone} - start recording"
-                tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
+                # USE => self.trigger_zone(session, zone, True) for zone mode...
+                tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, False, channel, True)))
             self.zone2[channel] = channel
         elif zone == 3:
             if len(self.zone3) == 0:
                 msg = f" {channel_names[channel]} - {confidence:.2f} - {person_counter} found in zone {zone} - start recording"
-                tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
+                # USE => self.trigger_zone(session, zone, True) for zone mode...
+                tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, False, channel, True)))
             self.zone3[channel] = channel
         else:
             if len(self.zone4) == 0:
                 msg = f" {channel_names[channel]} - {confidence:.2f} - {person_counter} found in zone {zone} - start recording"
-                tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
+                # USE => self.trigger_zone(session, zone, True) for zone mode...
+                tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, False, channel, True)))
             self.zone4[channel] = channel
         return msg
 
@@ -274,44 +293,54 @@ class SecVisionJetson:
         # The main loop
 
     async def main(self):
-        conn = aiohttp.TCPConnector(limit=None, ttl_dns_cache=300)
-        async with aiohttp.ClientSession(headers=self.session_auth(), connector=conn) as session:
-            for i in range(1, 5):
-                await self.cleanstart(session, i)
-            while True:
-                try:
-                    mainloop_timer = time.time()
-                    tasks = []
+        # conn = aiohttp.TCPConnector(limit=None, ttl_dns_cache=300)
+        # async with aiohttp.ClientSession(headers=self.session_auth(), connector=conn) as session:
+        for i in range(1, 5):
+            await self.cleanstart(self.session, i)
+        while True:
+            try:
+                mainloop_timer = time.time()
+                tasks = []
 
-                    # GET data frames
-                    channel_frames, timer = await af.get_frames(session, self.config.get('DVR', 'ip'),
-                                                                self.chcnt, self.jpeg)
+                # GET data frames
+                channel_frames, timer = await af.get_frames(self.session, self.config.get('DVR', 'ip'),
+                                                            self.chcnt, self.jpeg)
 
-                    # Inference tasks on received frames
-                    for channel, frame in channel_frames:
-                        # detect objects in the image
-                        await self.detect(frame, self.trt_yolo, 0.65, self.vis, channel, session, tasks)
-                    end = time.time()
-                    await asyncio.gather(*tasks)
+                # Inference tasks on received frames
+                for channel, frame in channel_frames:
+                    # detect objects in the image
+                    await self.detect(frame, self.trt_yolo, 0.65, self.vis, channel, self.session, tasks)
+                end = time.time()
+                await asyncio.gather(*tasks)
 
-                    # See if there was any background work to be done if not resest the gc
-                    for channel in self.sv_garbage_collector:
-                        await self.trigger_zone(session, self.determine_zone(channel), False)
-                    self.sv_garbage_collector = []
+                # See if there was any background work to be done if not resets the gc
+                for channel in self.sv_garbage_collector:
+                    # USE => self.trigger_zone(session, self.determine_zone(channel), False) for zone mode...
+                    await self.trigger_zone(self.session, self.determine_zone(channel), False, channel, False)
+                self.sv_garbage_collector = []
 
-                    # Keep an average of our network speed and only use upto 128 values
-                    self.network_speed.append(int(self.chcnt) / (end - mainloop_timer - timer))
-                    if len(self.network_speed) > 128:
-                        for i in range(0, 65):
-                            self.network_speed.pop(0)
+                # Keep an average of our network speed and only use upto 128 values
+                self.network_speed.append(int(self.chcnt) / (end - mainloop_timer - timer))
+                if len(self.network_speed) > 128:
+                    for i in range(0, 65):
+                        self.network_speed.pop(0)
 
-                    mainloop_end_timer = time.time()
-                    logging.info(
-                        f" Main loop - {(mainloop_end_timer - mainloop_timer):.2f}s Inference loop - {(end - mainloop_timer - timer):.2f}s @ {int(self.chcnt) / (end - mainloop_timer - timer):.2f}fps")
-                except:
-                    # we don't really care if it breaks, just try again...
-                    logging.info(f" ERROR")
-                    pass
+                mainloop_end_timer = time.time()
+                logging.info(
+                    f" Main loop - {(mainloop_end_timer - mainloop_timer):.2f}s Inference loop - {(end - mainloop_timer - timer):.2f}s @ {int(self.chcnt) / (end - mainloop_timer - timer):.2f}fps")
+            except:
+                # we don't really care if it breaks, just try again...
+                logging.info(f" ERROR - Main Loop died")
+                pass
+
+
+class SecVisionUrlGetter:
+    def __init__(self, session) -> None:
+        self.session = session
+
+    async def main(self):
+        while True:
+            print("Huzzah")
 
 
 if __name__ == '__main__':
@@ -324,8 +353,11 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
     # DB
     redisDb = redis.Redis(host='localhost', port=6379, db=0)
+    # Client Session
+    conn = aiohttp.TCPConnector(limit=None, ttl_dns_cache=300)
+    session = aiohttp.ClientSession(headers=SecVisionJetson.session_auth(config), connector=conn)
     # App
-    app = SecVisionJetson(config, redisDb)
+    app = SecVisionJetson(config, redisDb, session)
     initworkers(app)
     loop = asyncio.get_event_loop()
     result = loop.run_until_complete(app.main())

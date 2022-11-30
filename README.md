@@ -23,9 +23,8 @@ Technologies used
 
 ## To Do 
 
-  - [x] make the code neater?
-  - [ ] Make it not use AlarmIO to trigger events (zoneless operation)
- 
+  - [x] Make it not use AlarmIO to trigger events (zoneless operation)
+  - [ ] Add surveillance center notifications
  ### Usage
 
    Setup settings.ini
