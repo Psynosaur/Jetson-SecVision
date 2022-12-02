@@ -18,6 +18,8 @@ import sys
 import time
 from turbojpeg import TurboJPEG
 
+# import clr
+
 # determine user home directory
 home = str(Path.home())
 
@@ -159,7 +161,7 @@ class SecVisionJetson:
                 url = f"http://{self.DVRip}/ISAPI/ContentMgmt/record/control/manual/stop/tracks/{channel}"
             async with session.put(url) as response:
                 if response.status == 200:
-                    if high:
+                    if record:
                         logging.warning(f" {channel} started recording")
                     else:
                         logging.warning(f" {channel} stopped recording")
