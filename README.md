@@ -13,8 +13,8 @@ Technologies used
     - Environment is ready when Demo #5 runs with yolov4-416 model
   - Running redis instance 
     - https://redis.io/topics/quickstart
-   - Follow the instructions to get your userId so that the bot can message you
-      - https://telepot.readthedocs.io/en/latest/#id5
+  - Follow the instructions to get your user id so that the bot can message you
+    - https://telepot.readthedocs.io/en/latest/#id5
     
 ### Goals
 
@@ -26,8 +26,9 @@ Technologies used
 ## To Do 
 
   - [x] Make it not use AlarmIO to trigger events (zone less operation)
-  - [ ] Add surveillance center notifications
   - [x] Added telegram bot for sending pics of people at the front door
+  - [ ] Add surveillance center notifications
+  - [ ] Make Telegram notifications for all channels from settings and optional
 
  ### Usage
 
@@ -38,6 +39,9 @@ Technologies used
     password = SuchPass => password for DVR login
     channels = 8 => channels on DVR
     ip = 0.0.0.0 => IP address of DVR on local network
+    [Telegram]
+    token = botapitoken => get this from the telegram BotFather
+    id = userid => the id of your user chatting to the bot
    
    On DVR set basic auth for HTTP request
    
@@ -48,7 +52,7 @@ Technologies used
    #### Setup environment
 
     cd detect_yolo 
-    ln -s ${HOME}/tensorrt_demos/utils/ ./utils
+    ln -s ${HOME}/tensorrt demos/utils/ ./utils
     ln -s ${HOME}/tensorrt_demos/plugins/ ./plugins
     ln -s ${HOME}/tensorrt_demos/yolo/ ./yolo
     cd ..
