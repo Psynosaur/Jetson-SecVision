@@ -13,6 +13,8 @@ Technologies used
     - Environment is ready when Demo #5 runs with yolov4-416 model
   - Running redis instance 
     - https://redis.io/topics/quickstart
+   - Follow the instructions to get your userId so that the bot can message you
+      - https://telepot.readthedocs.io/en/latest/#id5
     
 ### Goals
 
@@ -23,8 +25,10 @@ Technologies used
 
 ## To Do 
 
-  - [x] Make it not use AlarmIO to trigger events (zoneless operation)
+  - [x] Make it not use AlarmIO to trigger events (zone less operation)
   - [ ] Add surveillance center notifications
+  - [x] Added telegram bot for sending pics of people at the front door
+
  ### Usage
 
    Setup settings.ini
@@ -38,7 +42,7 @@ Technologies used
    On DVR set basic auth for HTTP request
    
     git clone https://github.com/Psynosaur/JetsonSecVision && cd JetsonSecVision
-    pip3 install aiofiles aiohttp asyncio colorlog redis
+    pip3 install aiofiles aiohttp asyncio colorlog redis telepot
 
    ### Project needs symlinks to tensorrt_demo project
    #### Setup environment

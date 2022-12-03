@@ -17,6 +17,7 @@ from secvision_static import initworkers, channel_names
 import sys
 import time
 from turbojpeg import TurboJPEG
+import telepot
 
 # import clr
 
@@ -117,12 +118,13 @@ class SecVisionJetson:
     vis = BBoxVisualization(cls_dict)
     trt_yolo = TrtYOLO(args.model, args.category_num, args.letter_box)
 
-    def __init__(self, cfg, redis, session) -> None:
+    def __init__(self, cfg, redis, session, telebot) -> None:
         self.config = cfg
         self.redisDb = redis
         self.session = session
         self.chcnt = self.config.get('DVR', 'channels')
         self.DVRip = self.config.get('DVR', 'ip')
+        self.telegram_bot = telebot
 
     @staticmethod
     def session_auth(app_cfg):
@@ -181,6 +183,14 @@ class SecVisionJetson:
                         logging.warning(
                             f" Zone {zone} triggered off")
 
+    def sendTelegramMessage(self, channel, pathToImg):
+        if channel == "201":
+            logging.info(f"{pathToImg}")
+            self.telegram_bot.sendMessage(self.config.get('Telegram', 'id'),
+                                          'Hi, there is someone at the front door!')
+            self.telegram_bot.sendPhoto(self.config.get('Telegram', 'id'), photo=open(pathToImg, 'rb'))
+
+
     # Network detection
     async def detect(self, image, trt_yolo, conf_th, vis, channel, session, tasks):
         img = image
@@ -234,11 +244,14 @@ class SecVisionJetson:
                             pass
                         filesave_timer = time.time()
                         savepath = wd + f"{now.strftime('%H_%M_%S.%f')}_person_"
+                        imgpath = home + "/JetsonSecVision/" + imgdir + f"{now.strftime('%H_%M_%S.%f')}_person_frame.jpg"
+
                         np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_boxes", boxes)
                         np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_confs", confs)
                         np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_clss", clss)
                         cv2.imwrite(savepath + "frame.jpg", img,
                                     [int(cv2.IMWRITE_JPEG_QUALITY), 83])
+                        self.sendTelegramMessage(channel, imgpath)
                         end = time.time()
                         logging.info(f" File save time{(end - filesave_timer):.2f}s")
 
@@ -264,27 +277,24 @@ class SecVisionJetson:
         if zone == 1:
             if len(self.zone1) == 0:
                 msg = f" {channel_names[channel]} - {confidence:.2f} - {person_counter} found in zone {zone} - start recording"
-                # USE => self.trigger_zone(session, zone, True) for zone mode...
                 tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, False, channel, True)))
             self.zone1[channel] = channel
         elif zone == 2:
             if len(self.zone2) == 0:
                 msg = f" {channel_names[channel]} - {confidence:.2f} - {person_counter} found in zone {zone} - start recording"
-                # USE => self.trigger_zone(session, zone, True) for zone mode...
                 tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, False, channel, True)))
             self.zone2[channel] = channel
         elif zone == 3:
             if len(self.zone3) == 0:
                 msg = f" {channel_names[channel]} - {confidence:.2f} - {person_counter} found in zone {zone} - start recording"
-                # USE => self.trigger_zone(session, zone, True) for zone mode...
                 tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, False, channel, True)))
             self.zone3[channel] = channel
         else:
             if len(self.zone4) == 0:
                 msg = f" {channel_names[channel]} - {confidence:.2f} - {person_counter} found in zone {zone} - start recording"
-                # USE => self.trigger_zone(session, zone, True) for zone mode...
                 tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, False, channel, True)))
             self.zone4[channel] = channel
+        await asyncio.gather(*tasks)
         return msg
 
     # There might be some reason the triggers might be high?
@@ -313,11 +323,9 @@ class SecVisionJetson:
                     # detect objects in the image
                     await self.detect(frame, self.trt_yolo, 0.65, self.vis, channel, self.session, tasks)
                 end = time.time()
-                await asyncio.gather(*tasks)
 
-                # See if there was any background work to be done if not resets the gc
+                # See if there was any background work to be done if not resest the gc
                 for channel in self.sv_garbage_collector:
-                    # USE => self.trigger_zone(session, self.determine_zone(channel), False) for zone mode...
                     await self.trigger_zone(self.session, self.determine_zone(channel), False, channel, False)
                 self.sv_garbage_collector = []
 
@@ -344,7 +352,6 @@ class SecVisionUrlGetter:
         while True:
             print("Huzzah")
 
-
 if __name__ == '__main__':
     cwd = os.path.dirname(os.path.abspath(__file__))
     # Settings
@@ -358,8 +365,10 @@ if __name__ == '__main__':
     # Client Session
     conn = aiohttp.TCPConnector(limit=None, ttl_dns_cache=300)
     session = aiohttp.ClientSession(headers=SecVisionJetson.session_auth(config), connector=conn)
+    config.get('Telegram', 'token')
+    bot = telepot.Bot(f"{config.get('Telegram', 'token')}")
     # App
-    app = SecVisionJetson(config, redisDb, session)
+    app = SecVisionJetson(config, redisDb, session, bot)
     initworkers(app)
     loop = asyncio.get_event_loop()
     result = loop.run_until_complete(app.main())
