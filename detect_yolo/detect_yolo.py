@@ -17,7 +17,6 @@ from secvision_static import initworkers, channel_names
 import sys
 import time
 from turbojpeg import TurboJPEG
-import telepot
 
 # import clr
 
@@ -103,7 +102,7 @@ draw = {
 }
 
 
-class SecVisionJetson:
+class SecVisionJetson():
     channel_frames = []
     cnt = 0
     sv_channel_event = {}
@@ -118,13 +117,12 @@ class SecVisionJetson:
     vis = BBoxVisualization(cls_dict)
     trt_yolo = TrtYOLO(args.model, args.category_num, args.letter_box)
 
-    def __init__(self, cfg, redis, session, telebot) -> None:
+    def __init__(self, cfg, redis, session) -> None:
         self.config = cfg
         self.redisDb = redis
         self.session = session
         self.chcnt = self.config.get('DVR', 'channels')
         self.DVRip = self.config.get('DVR', 'ip')
-        self.telegram_bot = telebot
 
     @staticmethod
     def session_auth(app_cfg):
@@ -183,13 +181,14 @@ class SecVisionJetson:
                         logging.warning(
                             f" Zone {zone} triggered off")
 
-    def sendTelegramMessage(self, channel, pathToImg):
+    async def sendTelegramMessage(self, channel, pathToImg):
         if channel == "201":
-            logging.info(f"{pathToImg}")
-            self.telegram_bot.sendMessage(self.config.get('Telegram', 'id'),
-                                          'Hi, there is someone at the front door!')
-            self.telegram_bot.sendPhoto(self.config.get('Telegram', 'id'), photo=open(pathToImg, 'rb'))
-
+            url = f"https://api.telegram.org/bot{self.config.get('Telegram', 'token')}/sendPhoto?" \
+                  f"chat_id={self.config.get('Telegram', 'id')}&caption=Hi, there is someone at the front door!"
+            img = open(pathToImg, 'rb')
+            async with session.post(url, data={'photo': img}) as response:
+                if response.status == 200:
+                    logging.warning(f" Sent telegram message via SDK")
 
     # Network detection
     async def detect(self, image, trt_yolo, conf_th, vis, channel, session, tasks):
@@ -251,7 +250,6 @@ class SecVisionJetson:
                         np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_clss", clss)
                         cv2.imwrite(savepath + "frame.jpg", img,
                                     [int(cv2.IMWRITE_JPEG_QUALITY), 83])
-                        self.sendTelegramMessage(channel, imgpath)
                         end = time.time()
                         logging.info(f" File save time{(end - filesave_timer):.2f}s")
 
@@ -267,6 +265,7 @@ class SecVisionJetson:
                         self.redisDb.rpush(data['channel'], json.dumps(data))
                         end_time = time.time()
                         logging.info(f" Redis time {(end_time - start_time):.2f}s")
+                        await self.sendTelegramMessage(channel, imgpath)
                         break
                 idx += 1
 
@@ -315,8 +314,7 @@ class SecVisionJetson:
                 tasks = []
 
                 # GET data frames
-                channel_frames, timer = await af.get_frames(self.session, self.config.get('DVR', 'ip'),
-                                                            self.chcnt, self.jpeg)
+                channel_frames, timer = await af.get_frames(self.session, self.DVRip, self.chcnt, self.jpeg)
 
                 # Inference tasks on received frames
                 for channel, frame in channel_frames:
@@ -352,6 +350,7 @@ class SecVisionUrlGetter:
         while True:
             print("Huzzah")
 
+
 if __name__ == '__main__':
     cwd = os.path.dirname(os.path.abspath(__file__))
     # Settings
@@ -365,10 +364,8 @@ if __name__ == '__main__':
     # Client Session
     conn = aiohttp.TCPConnector(limit=None, ttl_dns_cache=300)
     session = aiohttp.ClientSession(headers=SecVisionJetson.session_auth(config), connector=conn)
-    config.get('Telegram', 'token')
-    bot = telepot.Bot(f"{config.get('Telegram', 'token')}")
     # App
-    app = SecVisionJetson(config, redisDb, session, bot)
+    app = SecVisionJetson(config, redisDb, session)
     initworkers(app)
     loop = asyncio.get_event_loop()
     result = loop.run_until_complete(app.main())

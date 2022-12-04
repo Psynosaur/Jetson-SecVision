@@ -46,7 +46,7 @@ Technologies used
    On DVR set basic auth for HTTP request
    
     git clone https://github.com/Psynosaur/JetsonSecVision && cd JetsonSecVision
-    pip3 install aiofiles aiohttp asyncio colorlog redis telepot
+    pip3 install aiofiles aiohttp asyncio colorlog redis
 
    ### Project needs symlinks to tensorrt_demo project
    #### Setup environment
