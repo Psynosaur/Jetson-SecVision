@@ -102,7 +102,7 @@ draw = {
 }
 
 
-class SecVisionJetson():
+class SecVisionJetson:
     channel_frames = []
     cnt = 0
     sv_channel_event = {}
@@ -116,6 +116,7 @@ class SecVisionJetson():
     cls_dict = get_cls_dict(args.category_num)
     vis = BBoxVisualization(cls_dict)
     trt_yolo = TrtYOLO(args.model, args.category_num, args.letter_box)
+    front_door_img_path = ""
 
     def __init__(self, cfg, redis, session) -> None:
         self.config = cfg
@@ -123,6 +124,7 @@ class SecVisionJetson():
         self.session = session
         self.chcnt = self.config.get('DVR', 'channels')
         self.DVRip = self.config.get('DVR', 'ip')
+        self.record_timeout = self.config.get('DVR', 'record_timeout')
 
     @staticmethod
     def session_auth(app_cfg):
@@ -181,15 +183,6 @@ class SecVisionJetson():
                         logging.warning(
                             f" Zone {zone} triggered off")
 
-    async def sendTelegramMessage(self, channel, pathToImg):
-        if channel == "201":
-            url = f"https://api.telegram.org/bot{self.config.get('Telegram', 'token')}/sendPhoto?" \
-                  f"chat_id={self.config.get('Telegram', 'id')}&caption=Hi, there is someone at the front door!"
-            img = open(pathToImg, 'rb')
-            async with session.post(url, data={'photo': img}) as response:
-                if response.status == 200:
-                    logging.warning(f" Sent telegram message via SDK")
-
     # Network detection
     async def detect(self, image, trt_yolo, conf_th, vis, channel, session, tasks):
         img = image
@@ -243,6 +236,7 @@ class SecVisionJetson():
                             pass
                         filesave_timer = time.time()
                         savepath = wd + f"{now.strftime('%H_%M_%S.%f')}_person_"
+                        logging.warning(f"Boxes : {boxes}")
                         imgpath = home + "/JetsonSecVision/" + imgdir + f"{now.strftime('%H_%M_%S.%f')}_person_frame.jpg"
 
                         np.save(wd + f"{now.strftime('%H_%M_%S.%f')}_person_boxes", boxes)
@@ -265,7 +259,9 @@ class SecVisionJetson():
                         self.redisDb.rpush(data['channel'], json.dumps(data))
                         end_time = time.time()
                         logging.info(f" Redis time {(end_time - start_time):.2f}s")
-                        await self.sendTelegramMessage(channel, imgpath)
+                        # Trigger front door messenger
+                        if channel == "201":
+                            self.front_door_img_path = imgpath
                         break
                 idx += 1
 

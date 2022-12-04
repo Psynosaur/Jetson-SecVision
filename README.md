@@ -15,7 +15,7 @@ Technologies used
     - https://redis.io/topics/quickstart
   - Follow the instructions to set up a bot and get your user id
     - https://www.instructables.com/Set-up-Telegram-Bot-on-Raspberry-Pi/
-    - Once setup send the bot a message on telegram
+    - Once the bot is set up send it a message on telegram
     - In your browser paste the following url
       - https://api.telegram.org/bot{tocken}/getUpdates 
       - Then get the id in the "from" object with your username in
@@ -109,40 +109,55 @@ Technologies used
 
 ![Detection](./detect_yolo/img.jpg)
 
-    Oct 26 20:36:26 jetson secvision_yolo[26856]: INFO: 501 Person found - Zone 3 start recording
-    Oct 26 20:36:26 jetson secvision_yolo[26856]: INFO: Zone 3 triggered on
-    Oct 26 20:36:27 jetson secvision_yolo[26856]: INFO: Network 4.53fps
-    Oct 26 20:36:29 jetson secvision_yolo[26856]: INFO: 501 Person found 2.737577s ago
-    Oct 26 20:36:29 jetson secvision_yolo[26856]: INFO: CPU 32.50°C / GPU 31.50°C / PLL 28.00°C
-    Oct 26 20:36:29 jetson secvision_yolo[26856]: INFO: AO 38.50°C / THERM 32.25°C / FAN 1195.0RPM
-    Oct 26 20:36:30 jetson secvision_yolo[26856]: INFO: Network 4.58fps
-    Oct 26 20:36:32 jetson secvision_yolo[26856]: INFO: Network 4.79fps
-    Oct 26 20:36:34 jetson secvision_yolo[26856]: INFO: 501 Person found 8.268842s ago
-    Oct 26 20:36:34 jetson secvision_yolo[26856]: INFO: CPU 34.00°C / GPU 30.50°C / PLL 28.00°C
-    Oct 26 20:36:34 jetson secvision_yolo[26856]: INFO: AO 40.00°C / THERM 32.50°C / FAN 1312.0RPM
-    Oct 26 20:36:34 jetson secvision_yolo[26856]: INFO: Network 4.60fps
-    Oct 26 20:36:37 jetson secvision_yolo[26856]: INFO: Network 4.76fps
-    Oct 26 20:36:39 jetson secvision_yolo[26856]: INFO: Network 4.78fps
-    Oct 26 20:36:40 jetson secvision_yolo[26856]: INFO: 501 Person found 13.755617s ago
-    Oct 26 20:36:40 jetson secvision_yolo[26856]: INFO: CPU 32.00°C / GPU 30.00°C / PLL 28.00°C
-    Oct 26 20:36:40 jetson secvision_yolo[26856]: INFO: AO 36.50°C / THERM 32.00°C / FAN 1125.0RPM
-    Oct 26 20:36:42 jetson secvision_yolo[26856]: INFO: Network 4.76fps
-    Oct 26 20:36:44 jetson secvision_yolo[26856]: INFO: Network 4.79fps
-    Oct 26 20:36:45 jetson secvision_yolo[26856]: INFO: 501 Person found 19.258132s ago
-    Oct 26 20:36:45 jetson secvision_yolo[26856]: INFO: CPU 32.00°C / GPU 30.00°C / PLL 28.00°C
-    Oct 26 20:36:45 jetson secvision_yolo[26856]: INFO: AO 35.50°C / THERM 31.00°C / FAN 1289.0RPM
-    Oct 26 20:36:47 jetson secvision_yolo[26856]: INFO: Network 4.74fps
-    Oct 26 20:36:49 jetson secvision_yolo[26856]: INFO: Network 4.76fps
-    Oct 26 20:36:51 jetson secvision_yolo[26856]: INFO: 501 Person found 24.786598s ago
-    Oct 26 20:36:51 jetson secvision_yolo[26856]: INFO: CPU 33.50°C / GPU 30.50°C / PLL 28.50°C
-    Oct 26 20:36:51 jetson secvision_yolo[26856]: INFO: AO 40.00°C / THERM 32.50°C / FAN 1062.0RPM
-    Oct 26 20:36:52 jetson secvision_yolo[26856]: INFO: Network 4.59fps
-    Oct 26 20:36:54 jetson secvision_yolo[26856]: INFO: Network 4.78fps
-    Oct 26 20:36:56 jetson secvision_yolo[26856]: INFO: 501 Person found 30.318584s ago
-    Oct 26 20:36:56 jetson secvision_yolo[26856]: INFO: CPU 33.50°C / GPU 31.00°C / PLL 28.50°C
-    Oct 26 20:36:56 jetson secvision_yolo[26856]: INFO: AO 40.00°C / THERM 33.25°C / FAN 1328.0RPM
-    Oct 26 20:36:57 jetson secvision_yolo[26856]: INFO: Network 4.70fps
-    Oct 26 20:36:57 jetson secvision_yolo[26856]: INFO: Zone 3 triggered off
+    Dec 04 13:59:57 jetson secvision_yolo[19702]: INFO: GET DATA - 0.69s
+    Dec 04 13:59:57 jetson secvision_yolo[19702]: WARNING: 201 started recording
+    Dec 04 13:59:57 jetson secvision_yolo[19702]: WARNING: Front door - 0.88 - 1 person found in zone 1 - start recording
+    Dec 04 13:59:57 jetson secvision_yolo[19702]: INFO: File save time0.03s
+    Dec 04 13:59:57 jetson secvision_yolo[19702]: INFO: Redis time 0.00s
+    Dec 04 13:59:57 jetson secvision_yolo[19702]: DEBUG:Using selector: EpollSelector
+    Dec 04 13:59:58 jetson secvision_yolo[19702]: INFO: Main loop - 2.16s Inference loop - 1.47s @ 5.46fps
+    Dec 04 13:59:59 jetson secvision_yolo[19702]: WARNING: Front door person found 1.288873s ago
+    Dec 04 13:59:59 jetson secvision_yolo[19702]: WARNING: Sent telegram message via API and it took 1.348s
+    Dec 04 13:59:59 jetson secvision_yolo[19702]: INFO: GET DATA - 0.70s
+    Dec 04 13:59:59 jetson secvision_yolo[19702]: WARNING: Front door - 1.00 - 1 person found in zone 1 - recording
+    Dec 04 13:59:59 jetson secvision_yolo[19702]: INFO:201 event exists
+    Dec 04 14:00:01 jetson secvision_yolo[19702]: INFO: Main loop - 2.12s Inference loop - 1.42s @ 5.63fps
+    Dec 04 14:00:01 jetson secvision_yolo[19702]: INFO: GET DATA - 0.76s
+    Dec 04 14:00:03 jetson secvision_yolo[19702]: INFO: Main loop - 2.18s Inference loop - 1.42s @ 5.63fps
+    Dec 04 14:00:03 jetson secvision_yolo[19702]: INFO: GET DATA - 0.72s
+    Dec 04 14:00:04 jetson secvision_yolo[19702]: WARNING: Front door person found 4.141477s ago
+    Dec 04 14:00:05 jetson secvision_yolo[19702]: INFO: Main loop - 2.13s Inference loop - 1.41s @ 5.66fps
+    Dec 04 14:00:06 jetson secvision_yolo[19702]: INFO: GET DATA - 0.75s
+    Dec 04 14:00:07 jetson secvision_yolo[19702]: INFO: Main loop - 2.17s Inference loop - 1.42s @ 5.64fps
+    Dec 04 14:00:08 jetson secvision_yolo[19702]: INFO: GET DATA - 0.74s
+    Dec 04 14:00:09 jetson secvision_yolo[19702]: INFO: Main loop - 2.18s Inference loop - 1.44s @ 5.57fps
+    Dec 04 14:00:09 jetson secvision_yolo[19702]: INFO: CPU 40.00°C / GPU 36.50°C / PLL 33.50°C
+    Dec 04 14:00:09 jetson secvision_yolo[19702]: INFO: AO 45.00°C / THERM 38.00°C / FAN 1625.0RPM
+    Dec 04 14:00:09 jetson secvision_yolo[19702]: INFO: NETWORK 5.63 FPS
+    Dec 04 14:00:09 jetson secvision_yolo[19702]: WARNING: Front door person found 9.743311s ago
+    Dec 04 14:00:10 jetson secvision_yolo[19702]: INFO: GET DATA - 0.72s
+    Dec 04 14:00:11 jetson secvision_yolo[19702]: INFO: Main loop - 2.14s Inference loop - 1.42s @ 5.64fps
+    Dec 04 14:00:12 jetson secvision_yolo[19702]: INFO: GET DATA - 0.73s
+    Dec 04 14:00:13 jetson secvision_yolo[19702]: INFO: Main loop - 2.14s Inference loop - 1.41s @ 5.67fps
+    Dec 04 14:00:14 jetson secvision_yolo[19702]: WARNING: Front door person found 14.743941s ago
+    Dec 04 14:00:14 jetson secvision_yolo[19702]: INFO: GET DATA - 0.76s
+    Dec 04 14:00:16 jetson secvision_yolo[19702]: INFO: Main loop - 2.17s Inference loop - 1.41s @ 5.66fps
+    Dec 04 14:00:16 jetson secvision_yolo[19702]: INFO: GET DATA - 0.67s
+    Dec 04 14:00:18 jetson secvision_yolo[19702]: INFO: Main loop - 2.09s Inference loop - 1.42s @ 5.64fps
+    Dec 04 14:00:18 jetson secvision_yolo[19702]: INFO: GET DATA - 0.71s
+    Dec 04 14:00:19 jetson secvision_yolo[19702]: WARNING: Front door person found 19.744398s ago
+    Dec 04 14:00:20 jetson secvision_yolo[19702]: INFO: Main loop - 2.13s Inference loop - 1.41s @ 5.66fps
+    Dec 04 14:00:21 jetson secvision_yolo[19702]: INFO: GET DATA - 0.74s
+    Dec 04 14:00:22 jetson secvision_yolo[19702]: INFO: Main loop - 2.15s Inference loop - 1.41s @ 5.68fps
+    Dec 04 14:00:23 jetson secvision_yolo[19702]: INFO: GET DATA - 0.70s
+    Dec 04 14:00:24 jetson secvision_yolo[19702]: INFO: Main loop - 2.11s Inference loop - 1.41s @ 5.67fps
+    Dec 04 14:00:24 jetson secvision_yolo[19702]: WARNING: Front door person found 24.744972s ago
+    Dec 04 14:00:25 jetson secvision_yolo[19702]: INFO: GET DATA - 0.79s
+    Dec 04 14:00:26 jetson secvision_yolo[19702]: WARNING: 201 stopped recording
+    Dec 04 14:00:26 jetson secvision_yolo[19702]: INFO: Main loop - 2.22s Inference loop - 1.41s @ 5.68fps
+    Dec 04 14:00:27 jetson secvision_yolo[19702]: INFO: GET DATA - 0.76s
+    Dec 04 14:00:29 jetson secvision_yolo[19702]: INFO: Main loop - 2.18s Inference loop - 1.42s @ 5.63fps
+    Dec 04 14:00:29 jetson secvision_yolo[19702]: INFO: GET DATA - 0.73s
     
  Dashboard available on jetson IP address on port **8080** 
 

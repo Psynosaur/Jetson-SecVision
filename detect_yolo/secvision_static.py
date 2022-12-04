@@ -1,8 +1,12 @@
+import aiohttp
+import async_frames_cv_v2 as af
+import asyncio
 import datetime
 import logging
 import os
 from secvision_web import aiohttp_server, run_server
 import threading
+import time as tyd
 
 channel_names = {
     '101': 'Front lawn',
@@ -23,8 +27,43 @@ def initworkers(obj) -> None:
     channel_event_worker.setDaemon(True)
     channel_event_worker.start()
 
+    telegram_worker = threading.Thread(name='telegram-messenger-daemon', target=telegram_messenger_work,
+                                       args=(e, obj, 0.1))
+    telegram_worker.setDaemon(True)
+    telegram_worker.start()
+
     webserver = threading.Thread(target=run_server, args=(aiohttp_server(obj),))
     webserver.start()
+
+
+async def send_telegram_message(obj, path_to_img):
+    telegram_url = "https://api.telegram.org"
+    token = obj.config.get('Telegram', 'token')
+    chat_id = obj.config.get('Telegram', 'id')
+    url = f"{telegram_url}/bot{token}/sendPhoto?chat_id={chat_id}&caption=Hi, there is someone at the front door!"
+    img = open(path_to_img, 'rb')
+    session = aiohttp.ClientSession()
+    # logging.warning(f" Url : {url} \n path : {pathToImg}")
+    start = tyd.time()
+    async with session.post(url, data={'photo': img}) as response:
+        end = tyd.time()
+        obj.front_door_img_path = ""
+        if response.status == 200:
+            logging.warning(f" Sent telegram message via API and it took {end - start:.3f}s")
+        await session.close()
+
+
+def telegram_messenger_work(event: threading.Event, obj, time: float) -> None:
+    while not event.isSet():
+        event_is_set = event.wait(time)
+        if event_is_set:
+            logging.debug('processing event')
+        else:
+            if obj.front_door_img_path != "":
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(send_telegram_message(obj, obj.front_door_img_path))
+                loop.close()
 
 
 def channel_event_work(event: threading.Event, obj, time: float) -> None:
@@ -55,10 +94,7 @@ def channel_event_work(event: threading.Event, obj, time: float) -> None:
                             f" {channel_names[channel]} person found {elapsed.total_seconds()}s ago")
 
                         # Checks if the channel event is older than 15s and then stops the zone recording.
-                        # TODO: Zoneless operation
-                        #  These zones would be redundant if recordings where triggered on a per channel basis
-                        #  non electrically...
-                        if elapsed > datetime.timedelta(seconds=15):
+                        if elapsed > datetime.timedelta(seconds=float(obj.record_timeout)):
                             zone = obj.determine_zone(channel)
                             if zone == 1:
                                 if len(obj.zone1) == 1:
