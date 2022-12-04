@@ -17,7 +17,7 @@ Technologies used
     - https://www.instructables.com/Set-up-Telegram-Bot-on-Raspberry-Pi/
     - Once the bot is set up send it a message on telegram
     - In your browser paste the following url
-      - https://api.telegram.org/bot{tocken}/getUpdates 
+      - https://api.telegram.org/bot{token}/getUpdates 
       - Then get the id in the "from" object with your username in
       - Replace both **token** and **id** in the settings.ini file
     
