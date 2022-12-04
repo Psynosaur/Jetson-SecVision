@@ -112,8 +112,6 @@ Technologies used
     Dec 04 13:59:57 jetson secvision_yolo[19702]: INFO: GET DATA - 0.69s
     Dec 04 13:59:57 jetson secvision_yolo[19702]: WARNING: 201 started recording
     Dec 04 13:59:57 jetson secvision_yolo[19702]: WARNING: Front door - 0.88 - 1 person found in zone 1 - start recording
-    Dec 04 13:59:57 jetson secvision_yolo[19702]: INFO: File save time0.03s
-    Dec 04 13:59:57 jetson secvision_yolo[19702]: INFO: Redis time 0.00s
     Dec 04 13:59:57 jetson secvision_yolo[19702]: DEBUG:Using selector: EpollSelector
     Dec 04 13:59:58 jetson secvision_yolo[19702]: INFO: Main loop - 2.16s Inference loop - 1.47s @ 5.46fps
     Dec 04 13:59:59 jetson secvision_yolo[19702]: WARNING: Front door person found 1.288873s ago
