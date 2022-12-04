@@ -13,8 +13,13 @@ Technologies used
     - Environment is ready when Demo #5 runs with yolov4-416 model
   - Running redis instance 
     - https://redis.io/topics/quickstart
-  - Follow the instructions to get your user id so that the bot can message you
-    - https://telepot.readthedocs.io/en/latest/#id5
+  - Follow the instructions to set up a bot and get your user id
+    - https://www.instructables.com/Set-up-Telegram-Bot-on-Raspberry-Pi/
+    - Once setup send the bot a message on telegram
+    - In your browser paste the following url
+      - https://api.telegram.org/bot{tocken}/getUpdates 
+      - Then get the id in the "from" object with your username in
+      - Replace both **token** and **id** in the settings.ini file
     
 ### Goals
 
