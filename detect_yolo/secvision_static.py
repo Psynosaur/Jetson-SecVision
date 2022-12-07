@@ -124,6 +124,7 @@ def channel_event_work(event: threading.Event, obj, time: float) -> None:
                 # Does work on the channel done event
                 for channel in channel_done_event_handler:
                     obj.sv_channel_event.pop(channel, None)
+                    obj.sv_garbage_collector.append(channel)
 
                 # Does work on the zone done event
                 for channel in zone_done_event_handler:

@@ -125,6 +125,7 @@ class SecVisionJetson:
         self.chcnt = self.config.get('DVR', 'channels')
         self.DVRip = self.config.get('DVR', 'ip')
         self.record_timeout = self.config.get('DVR', 'record_timeout')
+        self.use_zones = False
 
     @staticmethod
     def session_auth(app_cfg):
@@ -156,7 +157,8 @@ class SecVisionJetson:
     # TODO : Send surveillance center notification...
     async def trigger_zone(self, session, zone, high, channel="", record=False):
         url = ""
-        if len(channel) > 2:
+        # logging.warning(f"TRIGGER ZONE => channel {channel} should I record : {record}")
+        if channel != "":
             if record:
                 url = f"http://{self.DVRip}/ISAPI/ContentMgmt/record/control/manual/start/tracks/{channel}"
             else:
@@ -269,26 +271,33 @@ class SecVisionJetson:
     async def zone_activator(self, channel, session, tasks, zone, confidence, persons):
         person_counter = f'{persons} persons' if persons > 1 else f'{persons} person'
         msg = f" {channel_names[channel]} - {confidence:.2f} - {person_counter} found in zone {zone} - recording"
-        if zone == 1:
-            if len(self.zone1) == 0:
-                msg = f" {channel_names[channel]} - {confidence:.2f} - {person_counter} found in zone {zone} - start recording"
-                tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, False, channel, True)))
-            self.zone1[channel] = channel
-        elif zone == 2:
-            if len(self.zone2) == 0:
-                msg = f" {channel_names[channel]} - {confidence:.2f} - {person_counter} found in zone {zone} - start recording"
-                tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, False, channel, True)))
-            self.zone2[channel] = channel
-        elif zone == 3:
-            if len(self.zone3) == 0:
-                msg = f" {channel_names[channel]} - {confidence:.2f} - {person_counter} found in zone {zone} - start recording"
-                tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, False, channel, True)))
-            self.zone3[channel] = channel
+        # logging.warning(f"Zone Activator : ch {channel} z {zone} z1 {self.zone1} z2 {self.zone2} z3 {self.zone3} z4 {self.zone4} use zones : {bool(self.use_zones)}")
+        if bool(self.use_zones):
+            if zone == 1:
+                if len(self.zone1) == 0:
+                    msg = f" {channel_names[channel]} - {confidence:.2f} - {person_counter} found in zone {zone} - start recording"
+                    tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
+                self.zone1[channel] = channel
+            elif zone == 2:
+                if len(self.zone2) == 0:
+                    msg = f" {channel_names[channel]} - {confidence:.2f} - {person_counter} found in zone {zone} - start recording"
+                    tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
+                self.zone2[channel] = channel
+            elif zone == 3:
+                if len(self.zone3) == 0:
+                    msg = f" {channel_names[channel]} - {confidence:.2f} - {person_counter} found in zone {zone} - start recording"
+                    tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
+                self.zone3[channel] = channel
+            else:
+                if len(self.zone4) == 0:
+                    msg = f" {channel_names[channel]} - {confidence:.2f} - {person_counter} found in zone {zone} - start recording"
+                    tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, True)))
+                self.zone4[channel] = channel
         else:
-            if len(self.zone4) == 0:
+            if channel not in self.sv_channel_event:
+                logging.warning(f"ZONELESS TRIGGER channel {channel}")
                 msg = f" {channel_names[channel]} - {confidence:.2f} - {person_counter} found in zone {zone} - start recording"
                 tasks.append(asyncio.ensure_future(self.trigger_zone(session, zone, False, channel, True)))
-            self.zone4[channel] = channel
         await asyncio.gather(*tasks)
         return msg
 
@@ -319,6 +328,9 @@ class SecVisionJetson:
                 end = time.time()
 
                 # See if there was any background work to be done if not resest the gc
+                logging.warning(f"Ch Evt => {self.sv_channel_event}")
+                logging.warning(f"GC => {self.sv_garbage_collector}")
+
                 for channel in self.sv_garbage_collector:
                     await self.trigger_zone(self.session, self.determine_zone(channel), False, channel, False)
                 self.sv_garbage_collector = []
@@ -344,7 +356,7 @@ class SecVisionUrlGetter:
 
     async def main(self):
         while True:
-            print("Huzzah")
+            logging.warning("Huzzah")
 
 
 if __name__ == '__main__':
