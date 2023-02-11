@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta http-equiv="Cache-Control" content="max-age=31536000">
     <title>SecVision Dashboard</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <link rel="stylesheet" href="/static/bulma.min.css">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
 </head>
 
 <body>
@@ -37,105 +38,11 @@
 
         });
     </script>
-    <!-- FETCH DATAS -->
-    <script type="text/javascript">
-        const urlParams = new URLSearchParams(window.location.search);
-        let channel = urlParams.get('channel');
-        let page = urlParams.get('page');
-        let description = ""
-        if (page < 1) {
-            page = 1;
-        }
-        async function fetchDataAsync(url) {
-            const response = await fetch(url);
-            const data = await response.json();
-            let idx = 0
-
-            switch (channel) {
-                case '101':
-                    description = "Front Lawn"
-                    break;
-                case '201':
-                    description = "Front Door"
-                    break;
-                case '301':
-                    description = "Driveway"
-                    break;
-                case '401':
-                    description = "Side Gate"
-                    break;
-                case '501':
-                    description = "Courtyard"
-                    break;
-                case '601':
-                    description = "Garage Gate"
-                    break;
-                case '701':
-                    description = "Back Lawn"
-                    break;
-                case '801':
-                    description = "Pool Area"
-                    break;
-            }
-            data.forEach(obj => {
-                Object.entries(obj).forEach(([key, value]) => {
-                    if (key == 'path') {
-                        document.getElementById(idx).src = value + 'frame.jpg';
-                        document.getElementById(idx).alt = description;
-                        let piclink = "p" + idx;
-                        document.getElementById(piclink).href = value + 'frame.jpg';
-                        idx = idx + 1;
-                    }
-                });
-            });
-        }
-        fetchDataAsync('/chaninfo?id=' + channel + '&page=' + page);
-    </script>
-    <!-- BUTTON FUNCS -->
-    <script type="text/javascript">
-        async function forwardPage() {
-            let num = parseInt(page);
-            num++;
-            let uri = `/history?channel=${channel}&page=${num}`;
-            window.location.href = uri;
-        }
-        async function backPage() {
-            let num = parseInt(page);
-            if (page == 0 || page == 1) {
-                return;
-            }
-            num--;
-            let uri = `/history?channel=${channel}&page=${num}`;
-            window.location.href = uri;
-        }
-        async function forwardPage10() {
-            let num = parseInt(page);
-            num += 10;
-            let uri = `/history?channel=${channel}&page=${num}`;
-            window.location.href = uri;
-        }
-        async function backPage10() {
-            let num = parseInt(page);
-            num -= 10;
-            if (page === 0) {
-                page = 1;
-                return;
-            }
-            if (page < 10) {
-                return;
-            }
-            let uri = `/history?channel=${channel}&page=${num}`;
-            window.location.href = uri;
-        }
-    </script>
+    <script src="/static/channel_info.js" defer></script>
+    
     <style>
         @media screen and (max-width: 900px) {
-
-            #first {
-                order: 2;
-            }
-
-            #second {
+            #top, #mid, #bot {
                 order: 1;
             }
 
@@ -146,17 +53,6 @@
                 max-width: 1800px;
             }
         }
-
-        /* @media screen and (min-width: 1024px) {
-
-            .navbar,
-            .navbar-end,
-            .navbar-menu,
-            .navbar-start {
-                align-items: stretch;
-                display: flex;
-            }
-        } */
         .navbar-start {
             align-items: stretch !important;
             display: flex !important;
@@ -199,113 +95,9 @@
     <section class="hero is-fullheight-with-navbar is-fullwidth">
         <div class="hero-body">
             <div class="container m-auto">
-
-                <div class="columns is-desktop">
-                    <div class="column">
-                        <div class="card">
-                            <div class="card-image">
-                                <figure class="image is-16by9">
-                                    <a target="_blank" id="p0">
-                                        <img width="640" height="360" id="0">
-                                    </a>
-                                </figure>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="column">
-                        <div class="card">
-                            <div class="card-image">
-                                <figure class="image is-16by9">
-                                    <a target="_blank" id="p1">
-                                        <img width="640" height="360" id="1">
-                                    </a>
-                                </figure>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="column">
-                        <div class="card">
-                            <div class="card-image">
-                                <figure class="image is-16by9">
-                                    <a target="_blank" id="p2">
-                                        <img width="640" height="360" id="2">
-                                    </a>
-                                </figure>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="columns is-desktop">
-                    <div class="column">
-                        <div class="card">
-                            <div class="card-image">
-                                <figure class="image is-16by9">
-                                    <a target="_blank" id="p3">
-                                        <img width="640" height="360" id="3">
-                                    </a>
-                                </figure>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="column">
-                        <div class="card">
-                            <div class="card-image">
-                                <figure class="image is-16by9">
-                                    <a target="_blank" id="p4">
-                                        <img width="640" height="360" id="4">
-                                    </a>
-                                </figure>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="column">
-                        <div class="card">
-                            <div class="card-image">
-                                <figure class="image is-16by9">
-                                    <a target="_blank" id="p5">
-                                        <img width="640" height="360" id="5">
-                                    </a>
-                                </figure>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="columns is-desktop">
-                    <div class="column">
-                        <div class="card">
-                            <div class="card-image">
-                                <figure class="image is-16by9">
-                                    <a target="_blank" id="p6">
-                                        <img width="640" height="360" id="6">
-                                    </a>
-                                </figure>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="column">
-                        <div class="card">
-                            <div class="card-image">
-                                <figure class="image is-16by9">
-                                    <a target="_blank" id="p7">
-                                        <img width="640" height="360" id="7">
-                                    </a>
-                                </figure>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="column">
-                        <div class="card">
-                            <div class="card-image">
-                                <figure class="image is-16by9">
-                                    <a target="_blank" id="p8">
-                                        <img width="640" height="360" id="8">
-                                    </a>
-                                </figure>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
+                <div id="top" class="columns is-desktop"></div>    
+                <div id="mid" class="columns is-desktop"></div>
+                <div id="bot" class="columns is-desktop"></div>
             </div>
         </div>
         <div class="hero-foot ">
@@ -323,5 +115,4 @@
 
     </section>
 </body>
-
 </html>
