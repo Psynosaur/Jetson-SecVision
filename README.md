@@ -34,6 +34,7 @@ Technologies used
     - [ ] Software stats, running, failing etc...
     - [ ] Channel Trigger info
     - [ ] Person counter 
+  - [ ] Captured frames, garbage collection...
 
  ### Usage
 
