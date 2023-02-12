@@ -21,19 +21,19 @@ Technologies used
       - Then get the id in the "from" object with your username in
       - Replace both **token** and **id** in the settings.ini file
     
-### Goals
+### Findings
 
- - Use still frames from HTTP GET from DVR to analyze zones(cameras)
- - Detected persons
-   - HTTP PUT to HikVision DVR
-   - Use DVR output connected to input to trigger recording on DVR
+ - With a 4TB HDD, there about 720 days of video recordings, before it starts overwriting data.
 
 ## To Do 
 
-  - [x] Make it not use AlarmIO to trigger events (zone less operation)
-  - [x] Added telegram bot for sending pics of people at the front door
   - [ ] Add surveillance center notifications
   - [ ] Make Telegram notifications for all channels from settings and optional
+    - [ ] Determine on and off times per camera
+  - [ ] Upgrade dashboard, with recording stats
+    - [ ] Software stats, running, failing etc...
+    - [ ] Channel Trigger info
+    - [ ] Person counter 
 
  ### Usage
 
@@ -51,7 +51,7 @@ Technologies used
    On DVR set basic auth for HTTP request
    
     git clone https://github.com/Psynosaur/JetsonSecVision && cd JetsonSecVision
-    pip3 install aiofiles aiohttp asyncio colorlog redis
+    pip3 install aiofiles aiohttp==3.7.4 asyncio colorlog redis
 
    ### Project needs symlinks to tensorrt_demo project
    #### Setup environment
