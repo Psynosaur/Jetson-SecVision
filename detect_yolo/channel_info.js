@@ -1,6 +1,6 @@
 function renderChannelFrames(id, num) {
     let row = document.getElementById(id);
-    for (i = num; i < num + 3; i++) {
+    for (let i = num; i < num + 3; i++) {
         row.innerHTML +=
             `
                 <div class="column">
@@ -16,15 +16,18 @@ function renderChannelFrames(id, num) {
                 </div>
             `
     }
-};
+}
+
 const urlParams = new URLSearchParams(window.location.search);
 const channel = urlParams.get('channel');
-const page = urlParams.get('page');
+let page = urlParams.get('page');
+
 function fetchData() {
     let description = ""
     if (page < 1) {
         page = 1;
     }
+
     async function fetchDataAsync(url) {
         const response = await fetch(url);
         const data = await response.json();
@@ -58,7 +61,7 @@ function fetchData() {
         }
         data.forEach(obj => {
             Object.entries(obj).forEach(([key, value]) => {
-                if (key == 'path') {
+                if (key === 'path') {
                     document.getElementById(idx).src = value + 'frame.jpg';
                     document.getElementById(idx).alt = description;
                     let piclink = "p" + idx;
@@ -68,53 +71,38 @@ function fetchData() {
             });
         });
     }
-    fetchDataAsync('/chaninfo?id=' + channel + '&page=' + page);
+
+    fetchDataAsync('/chaninfo?id=' + channel + '&page=' + page).then();
 }
-document.onload = renderChannelFrames('top', 0);
-document.onload = renderChannelFrames('mid', 3);
-document.onload = renderChannelFrames('bot', 6);
-document.onload = fetchData();
-document.onload = function BottomButs() {
-    let touchstartX = 0
-    let touchendX = 0
 
-    const slider = document.getElementById('slider')
+document.addEventListener("DOMContentLoaded", function (event) {
+    renderChannelFrames('top', 0);
+    renderChannelFrames('mid', 3);
+    renderChannelFrames('bot', 6);
+    fetchData();
+});
 
-    function handleGesture() {
-        if (touchendX < touchstartX) backPage()
-        if (touchendX > touchstartX) forwardPage()
-    }
-
-    slider.addEventListener('touchstart', e => {
-        touchstartX = e.changedTouches[0].screenX
-    })
-
-    slider.addEventListener('touchend', e => {
-        touchendX = e.changedTouches[0].screenX
-        handleGesture()
-    })
-}
 function forwardPage() {
     let num = parseInt(page);
     num++;
-    let uri = `/history?channel=${channel}&page=${num}`;
-    window.location.href = uri;
+    window.location.href = `/history?channel=${channel}&page=${num}`;
 }
+
 function backPage() {
     let num = parseInt(page);
-    if (page == 0 || page == 1) {
+    if (page === 0 || page === 1) {
         return;
     }
     num--;
-    let uri = `/history?channel=${channel}&page=${num}`;
-    window.location.href = uri;
+    window.location.href = `/history?channel=${channel}&page=${num}`;
 }
+
 function forwardPage10() {
     let num = parseInt(page);
     num += 10;
-    let uri = `/history?channel=${channel}&page=${num}`;
-    window.location.href = uri;
+    window.location.href = `/history?channel=${channel}&page=${num}`;
 }
+
 function backPage10() {
     let num = parseInt(page);
     num -= 10;
@@ -125,6 +113,5 @@ function backPage10() {
     if (page < 10) {
         return;
     }
-    let uri = `/history?channel=${channel}&page=${num}`;
-    window.location.href = uri;
+    window.location.href = `/history?channel=${channel}&page=${num}`;
 }
