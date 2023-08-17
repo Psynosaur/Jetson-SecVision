@@ -7,6 +7,7 @@ import os
 from secvision_web import aiohttp_server, run_server
 import threading
 import time as tyd
+import uvloop
 
 channel_names = {
     '101': 'Front lawn',
@@ -36,21 +37,28 @@ def initworkers(obj) -> None:
     webserver.start()
 
 
-async def send_telegram_message(obj, path_to_img):
+async def send_telegram_message(obj, pathToImg):
     telegram_url = "https://api.telegram.org"
     token = obj.config.get('Telegram', 'token')
     chat_id = obj.config.get('Telegram', 'id')
-    url = f"{telegram_url}/bot{token}/sendPhoto?chat_id={chat_id}&caption=Hi, there is someone at the front door!"
-    img = open(path_to_img, 'rb')
+    url = f"{telegram_url}/bot{token}/sendPhoto?chat_id={chat_id}&caption=Hi, there is someone at the {obj.telegramChannel}"
+    img = open(pathToImg, 'rb')
     session = aiohttp.ClientSession()
-    # logging.warning(f" Url : {url} \n path : {pathToImg}")
+    # logging.info(f" Url : {url} \n path : {pathToImg}")
     start = tyd.time()
-    async with session.post(url, data={'photo': img}) as response:
-        end = tyd.time()
-        obj.front_door_img_path = ""
-        if response.status == 200:
-            logging.warning(f" Sent telegram message via API and it took {end - start:.3f}s")
-        await session.close()
+    try:
+        async with session.post(url, data={'photo': img}) as response:
+            end = tyd.time()
+            obj.front_door_img_path = ""
+            obj.telegramChannel = ""
+            if response.status == 200:
+                logging.info(f" Sent telegram message via API and it took {end - start:.3f}s")
+            await session.close()
+    except Exception as e:
+        logging.debug(e)
+        pass
+    else:
+        pass
 
 
 def telegram_messenger_work(event: threading.Event, obj, time: float) -> None:
@@ -60,7 +68,7 @@ def telegram_messenger_work(event: threading.Event, obj, time: float) -> None:
             logging.debug('processing event')
         else:
             if obj.front_door_img_path != "":
-                loop = asyncio.new_event_loop()
+                loop = uvloop.new_event_loop()
                 asyncio.set_event_loop(loop)
                 loop.run_until_complete(send_telegram_message(obj, obj.front_door_img_path))
                 loop.close()
@@ -90,7 +98,7 @@ def channel_event_work(event: threading.Event, obj, time: float) -> None:
                     if float(obj.sv_channel_event[channel]) > 0:
                         elapsed = datetime.datetime.now() - datetime.datetime.fromtimestamp(
                             obj.sv_channel_event[channel])
-                        logging.warning(
+                        logging.info(
                             f" {channel_names[channel]} person found {elapsed.total_seconds()}s ago")
 
                         # Checks if the channel event is older than 15s and then stops the zone recording.
@@ -133,13 +141,16 @@ def channel_event_work(event: threading.Event, obj, time: float) -> None:
 
 
 def log_metrics(ao_temp, cpu_temp, gpu_temp, pll_temp, rpm, thermal, net):
+    logging.info(" =============================> STATS <=============================")
     logging.info(
-        f" CPU {int(cpu_temp) / 1000:.2f}°C / GPU {int(gpu_temp) / 1000:.2f}°C /"
+        f"             CPU {int(cpu_temp) / 1000:.2f}°C / GPU {int(gpu_temp) / 1000:.2f}°C /"
         f" PLL {int(pll_temp) / 1000:.2f}°C")
     logging.info(
-        f" AO {int(ao_temp) / 1000:.2f}°C / THERM {int(thermal) / 1000:.2f}°C / FAN {round(rpm, 0)}RPM ")
+        f"              AO {int(ao_temp) / 1000:.2f}°C / THERM {int(thermal) / 1000:.2f}°C / FAN {round(rpm, 0):.0f}RPM ")
     logging.info(
-        f" NETWORK {net:.2f} FPS ")
+        f"                        NETWORK {net:.3f} FPS avg")
+    logging.info(" ===================================================================")
+
 
 
 def jetson_metrics():

@@ -3,14 +3,15 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Cache-Control" content="max-age=31536000">
-    <title>SecVision Dashboard</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redis Keys</title>
+    <script src="/static/redis_keys.js" defer></script>
     <link rel="stylesheet" href="/static/bulma.min.css">
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
 </head>
 
 <body>
-    <!-- NAVBAR BURGER TOGGLER -->
     <script type="text/javascript">
         document.addEventListener('DOMContentLoaded', () => {
 
@@ -38,32 +39,6 @@
 
         });
     </script>
-    <script src="/static/channel_info.js" defer></script>
-
-    <style>
-        @media screen and (max-width: 900px) {
-            #top, #mid, #bot {
-                order: 1;
-            }
-
-        }
-
-        @media screen and (min-width: 1408px) {
-            .container:not(.is-max-desktop):not(.is-max-widescreen) {
-                max-width: 1800px;
-            }
-        }
-        .navbar-start {
-            align-items: stretch !important;
-            display: flex !important;
-        }
-
-        .card {
-            height: fit-content;
-            border-radius: 6px;
-            background-color: #313131;
-        }
-    </style>
     <nav class="navbar is-fixed-top is-dark" role="navigation" aria-label="main navigation">
 
         <div class="navbar-brand has-text-light">
@@ -80,23 +55,22 @@
         </div>
         <div id="pew" class="navbar-menu has-background-dark">
             <ul class="navbar-start">
-                <a class="navbar-item has-text-light" href="/history?channel=101&page=1">Front Lawn</a>
-                <a class="navbar-item has-text-light" href="/history?channel=201&page=1">Front Door</a>
-                <a class="navbar-item has-text-light" href="/history?channel=301&page=1">Driveway</a>
-                <a class="navbar-item has-text-light" href="/history?channel=401&page=1">Side Gate</a>
-                <a class="navbar-item has-text-light" href="/history?channel=501&page=1">Courtyard</a>
-                <a class="navbar-item has-text-light" href="/history?channel=601&page=1">Garage Gate</a>
-                <a class="navbar-item has-text-light" href="/history?channel=701&page=1">Back Lawn</a>
-                <a class="navbar-item has-text-light" href="/history?channel=801&page=1">Pool Area</a>
-                <a class="navbar-item has-text-light" href="" id="his">History</a>
+                <a class="navbar-item has-text-light" href="/redis?channel=101&page=1">Front Lawn</a>
+                <a class="navbar-item has-text-light" href="/redis?channel=201&page=1">Front Door</a>
+                <a class="navbar-item has-text-light" href="/redis?channel=301&page=1">Driveway</a>
+                <a class="navbar-item has-text-light" href="/redis?channel=401&page=1">Side Gate</a>
+                <a class="navbar-item has-text-light" href="/redis?channel=501&page=1">Courtyard</a>
+                <a class="navbar-item has-text-light" href="/redis?channel=601&page=1">Garage Gate</a>
+                <a class="navbar-item has-text-light" href="/redis?channel=701&page=1">Back Lawn</a>
+                <a class="navbar-item has-text-light" href="/redis?channel=801&page=1">Pool Area</a>
             </ul>
         </div>
 
     </nav>
-    <section class="hero is-fullheight-with-navbar is-fullwidth">
+    <section class="hero is-fullheight-with-navbar is-fullwidth has-background-dark">
         <div class="hero-body">
             <div class="container m-auto">
-                <div id="top" class="columns is-desktop"></div>    
+                <div id="top" class="columns is-desktop"></div>
                 <div id="mid" class="columns is-desktop"></div>
                 <div id="bot" class="columns is-desktop"></div>
             </div>
@@ -113,7 +87,7 @@
                 </div>
             </div>
         </div>
-
     </section>
 </body>
+
 </html>

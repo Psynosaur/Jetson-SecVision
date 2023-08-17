@@ -16,18 +16,16 @@ function renderChannelFrames(id, num) {
                 </div>
             `
     }
-}
-
+    return true;
+};
 const urlParams = new URLSearchParams(window.location.search);
 const channel = urlParams.get('channel');
 let page = urlParams.get('page');
-
 function fetchData() {
     let description = ""
     if (page < 1) {
         page = 1;
     }
-
     async function fetchDataAsync(url) {
         const response = await fetch(url);
         const data = await response.json();
@@ -71,15 +69,15 @@ function fetchData() {
             });
         });
     }
-
     fetchDataAsync('/chaninfo?id=' + channel + '&page=' + page).then();
 }
 
-document.addEventListener("DOMContentLoaded", function (event) {
+document.addEventListener("DOMContentLoaded", function(event) {
     renderChannelFrames('top', 0);
     renderChannelFrames('mid', 3);
     renderChannelFrames('bot', 6);
     fetchData();
+    document.getElementById("his").setAttribute("href",`/redis?channel=${channel}&page=1`);
 });
 
 function forwardPage() {
@@ -87,7 +85,6 @@ function forwardPage() {
     num++;
     window.location.href = `/history?channel=${channel}&page=${num}`;
 }
-
 function backPage() {
     let num = parseInt(page);
     if (page === 0 || page === 1) {
@@ -96,13 +93,11 @@ function backPage() {
     num--;
     window.location.href = `/history?channel=${channel}&page=${num}`;
 }
-
 function forwardPage10() {
     let num = parseInt(page);
     num += 10;
     window.location.href = `/history?channel=${channel}&page=${num}`;
 }
-
 function backPage10() {
     let num = parseInt(page);
     num -= 10;
